@@ -6,3 +6,4 @@ xcuserdata/
 
 # 本机提取的第三方参考图片
 /design/reference-icons/*.png
+/docs/audit-*/
