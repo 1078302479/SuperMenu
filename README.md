@@ -6,7 +6,7 @@
 
 ## 下载安装
 
-前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.3.3-arm64.dmg`。首版支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
+前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.3.4-arm64.dmg`。首版支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
 
 打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。预览包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
 
@@ -39,7 +39,7 @@ open ".build/local/增强右键.app"
 2. 在「使用范围」选择「系统磁盘」或「全部磁盘」。访问受 macOS 保护的文件夹时，可通过权限设置引导检查完全磁盘访问权限。
 3. 在访达目录的空白处右键可新建文件，选中文件后可使用文件操作。要把新建文件按钮加入工具栏，可在访达的「显示 → 自定工具栏…」中拖入增强右键。
 
-源码体验构建使用临时签名，并把配置保存在构建目录内的 `shared` 文件夹。下载的安装版将配置保存在当前用户的 `Library/Application Support/io.github.1078302479.SuperMenu`。在线检查更新将在后续版本提供。
+源码体验构建使用临时签名，并把配置保存在构建目录内的 `shared` 文件夹。下载的安装版将配置保存在当前用户的 `Library/Application Support/io.github.1078302479.SuperMenu`。通用设置支持手动检查更新。自动检查默认开启，成功检查后间隔至少 24 小时再检查，发现新版本后可前往 GitHub 下载。
 
 ## 开发与许可
 

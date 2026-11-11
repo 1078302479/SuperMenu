@@ -41,6 +41,7 @@ struct SystemPreferencesView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 }
+                UpdatePreferencesView(model: model, checker: model.updates)
                 GroupBox("权限") {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("部分功能无法使用时，您可以授予完全磁盘访问权限来解决。")

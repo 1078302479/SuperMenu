@@ -100,7 +100,10 @@ enum MenuIcons {
     }
 
     static func action(_ action: FinderAction, size: CGFloat) -> NSImage? {
-        actionNames[action].flatMap { referenceImage(named: $0, size: size) }
+        if action == .openTerminal {
+            return application(ApplicationEntry(id: "com.apple.Terminal", name: "终端"), size: size)
+        }
+        return actionNames[action].flatMap { referenceImage(named: $0, size: size) }
     }
 
     static func folder(at url: URL) -> NSImage {
@@ -120,6 +123,9 @@ enum MenuIcons {
         for id in [entry.bundleID] + (entry.alternateBundleIdentifiers ?? []) {
             guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { continue }
             return sized(NSWorkspace.shared.icon(forFile: url.path), to: size)
+        }
+        if entry.bundleID == "com.apple.Terminal" {
+            return sized(NSWorkspace.shared.icon(forFile: "/System/Applications/Utilities/Terminal.app"), to: size)
         }
         return sized(NSWorkspace.shared.icon(for: .applicationBundle), to: size)
     }

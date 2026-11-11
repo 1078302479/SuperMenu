@@ -20,6 +20,7 @@ final class SettingsModel: ObservableObject {
     private let toolbox = ToolboxController()
     private let imageTools = ImageToolsController()
     let integrations = IntegrationController()
+    let updates = UpdateChecker()
     @Published var selectedFileIconID: String?
     @Published private(set) var importedIcons: [FileIconStore.Imported] = []
     @Published private(set) var loginEnabled = false
@@ -1005,6 +1006,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         preferencesObserver = DistributedNotificationCenter.default().addObserver(forName: SharedStore.settingsChanged,
                                                                                    object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.updateStatusItem() }
+        }
+        model.updates.check(automatically: true, enabled: model.settings.automaticallyChecksForUpdates ?? true)
+        Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.model.updates.check(automatically: true, enabled: self.model.settings.automaticallyChecksForUpdates ?? true)
+            }
         }
         model.recoverExpiredCut()
         Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in

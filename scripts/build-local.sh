@@ -36,8 +36,8 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenu</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.3.3</string>
-<key>CFBundleVersion</key><string>31</string>
+<key>CFBundleShortVersionString</key><string>0.3.4</string>
+<key>CFBundleVersion</key><string>32</string>
 <key>CFBundleDevelopmentRegion</key><string>zh-Hans</string>
 <key>CFBundleLocalizations</key><array><string>zh-Hans</string><string>en</string></array>
 <key>NSAppleEventsUsageDescription</key><string>在所选目录中打开终端窗口或 iTerm2 标签页。</string>
@@ -80,8 +80,8 @@ cat > "$extension/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenuFinder</string>
 <key>CFBundlePackageType</key><string>XPC!</string>
-<key>CFBundleShortVersionString</key><string>0.3.3</string>
-<key>CFBundleVersion</key><string>31</string>
+<key>CFBundleShortVersionString</key><string>0.3.4</string>
+<key>CFBundleVersion</key><string>32</string>
 <key>LSMinimumSystemVersion</key><string>$deployment</string>
 <key>NSExtension</key><dict>
 <key>NSExtensionAttributes</key><dict/>

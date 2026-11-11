@@ -127,6 +127,13 @@ struct BackgroundHandoffSmoke {
         let fixture = try SharedStore.directory().appendingPathComponent("fixture", isDirectory: true)
         try FileManager.default.createDirectory(at: fixture, withIntermediateDirectories: false)
         try verifyTemplates(in: fixture)
+        let newer = GitHubRelease(tag_name: "v0.3.10", html_url: "https://github.com/1078302479/SuperMenu/releases/tag/v0.3.10", draft: false, prerelease: false)
+        guard newer.isNewer(than: "0.3.9"), !newer.isNewer(than: "0.3.10"),
+              GitHubRelease.version("v0.3.4-beta") == nil, newer.page != nil,
+              GitHubRelease(tag_name: "v9.0.0", html_url: "https://example.com/file", draft: false, prerelease: true).page == nil,
+              FileIconLibrary.presets.allSatisfy({ FileIconLibrary.image($0)?.isValid == true }),
+              MenuIcons.action(.openTerminal, size: 16)?.isValid == true
+        else { throw SmokeError.unexpectedResult }
         try verifyToolbarMenu()
         try verifyNamedCreation(in: fixture)
         try verifySavedFolders(in: fixture)

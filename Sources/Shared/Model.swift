@@ -99,6 +99,7 @@ struct FolderAccess: Codable, Identifiable {
 }
 
 struct Settings: Codable {
+    var automaticallyChecksForUpdates: Bool?
     var usageScope: UsageScope?
     var toolboxItemOrder: [String]?
     var toolboxDisplayNames: [String: String]?
