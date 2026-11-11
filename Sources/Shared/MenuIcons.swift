@@ -35,13 +35,60 @@ enum MenuIcons {
         .diskMap: "diskmap",
     ]
 
+    private static let specifications: [(String, String, NSColor)] = [
+        ("new-file", "doc.badge.plus", .systemCyan), ("named-file", "doc.badge.plus", .systemCyan),
+        ("copy-name", "doc.text", .systemCyan), ("copy-path", "link", .systemGreen),
+        ("folder-from-name", "folder.badge.plus", .systemBlue), ("cut", "scissors", .systemCyan),
+        ("add-favorite", "heart.fill", .systemPink), ("nav-favorites", "heart.fill", .systemPink),
+        ("file-info", "info", .systemBlue), ("delete", "trash", .systemRed),
+        ("hide", "eye.slash.fill", .darkGray), ("show", "eye.fill", .darkGray),
+        ("extension", "textformat", .systemBlue), ("repair-name", "character.cursor.ibeam", .systemTeal),
+        ("desktop-alias", "arrow.up.forward", .darkGray), ("airdrop", "airplayaudio", .systemBlue),
+        ("convert-image", "photo", .systemGreen), ("file-icon", "folder.fill", .systemOrange),
+        ("dissolve", "folder.badge.minus", .systemCyan), ("wallpaper", "display", .systemCyan),
+        ("grant-write", "lock.open.fill", .systemOrange), ("ishot", "photo.fill", .systemGreen),
+        ("fastzip", "archivebox.fill", .systemOrange), ("diskmap", "chart.pie.fill", .systemPurple),
+        ("nav-general", "gearshape.fill", .systemCyan), ("nav-templates", "doc.badge.plus", .systemCyan),
+        ("nav-send", "doc.on.doc.fill", .systemGreen), ("nav-file-icons", "folder.fill", .systemOrange),
+        ("nav-toolbox", "square.grid.2x2.fill", .systemPink), ("text-baidu", "character.bubble.fill", .systemBlue),
+        ("text-google", "character.bubble.fill", .systemGreen), ("text-qrCode", "qrcode", .darkGray),
+    ]
+
+    private static func coloredIcon(named name: String) -> NSImage? {
+        guard let (_, symbol, color) = specifications.first(where: { $0.0 == name }) else { return nil }
+        guard let glyph = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 38, weight: .medium)) else {
+            return nil
+        }
+        let image = NSImage(size: NSSize(width: 64, height: 64), flipped: false) { _ in
+            let tile = NSBezierPath(roundedRect: NSRect(x: 2, y: 2, width: 60, height: 60), xRadius: 13, yRadius: 13)
+            NSColor.white.setFill()
+            tile.fill()
+            NSColor(white: 0.86, alpha: 1).setStroke()
+            tile.lineWidth = 1
+            tile.stroke()
+            let tinted = NSImage(size: glyph.size, flipped: false) { bounds in
+                glyph.draw(in: bounds)
+                color.setFill()
+                bounds.fill(using: .sourceIn)
+                return true
+            }
+            let scale = min(42 / glyph.size.width, 42 / glyph.size.height)
+            let size = NSSize(width: glyph.size.width * scale, height: glyph.size.height * scale)
+            tinted.draw(in: NSRect(x: (64 - size.width) / 2, y: (64 - size.height) / 2, width: size.width, height: size.height))
+            return true
+        }
+        return image.tiffRepresentation.flatMap(NSImage.init(data:))
+    }
+
     private static let originals: [String: NSImage] = {
         var icons: [String: NSImage] = [:]
         let additional = ["nav-general", "nav-templates", "nav-send", "nav-favorites", "nav-file-icons", "nav-toolbox", "text-baidu", "text-google", "text-qrCode"]
         let apps = ["Android Studio", "AppCode", "CLion", "CotEditor", "DataGrip", "Emacs", "GoLand", "HBuilderX", "Hyper", "IDEA", "iTerm2", "MarkText", "Obsidian", "PhpStorm", "PyCharm", "Rider", "RubyMine", "Sublime Merge", "Sublime Text", "Tabby", "Terminal", "Typora", "Visual Studio", "VSCode", "Warp", "WebStorm"].map { "app-" + $0 }
         for name in DocumentTemplate.allCases.map(\.rawValue) + ["new-file", "named-file"] + Array(actionNames.values) + additional + apps {
-            guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "TemplateIcons"),
-                  let icon = NSImage(contentsOf: url), icon.isValid else { continue }
+            let bundled = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "TemplateIcons")
+                .flatMap { NSImage(contentsOf: $0) }
+            guard let icon = bundled ?? coloredIcon(named: name), icon.isValid else { continue }
             icon.isTemplate = false
             icons[name] = icon
         }
@@ -70,10 +117,11 @@ enum MenuIcons {
     static func application(_ entry: ApplicationEntry, size: CGFloat) -> NSImage? {
         let aliases = ["终端": "Terminal", "Visual Studio Code": "VSCode", "VS Code Insiders": "VSCode", "IntelliJ IDEA": "IDEA"]
         if let icon = referenceImage(named: "app-" + (aliases[entry.name] ?? entry.name), size: size) { return icon }
-        if let id = entry.bundleIdentifier, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+        for id in [entry.bundleID] + (entry.alternateBundleIdentifiers ?? []) {
+            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { continue }
             return sized(NSWorkspace.shared.icon(forFile: url.path), to: size)
         }
-        return nil
+        return sized(NSWorkspace.shared.icon(for: .applicationBundle), to: size)
     }
 
     static func document(extension ext: String, size: CGFloat) -> NSImage {

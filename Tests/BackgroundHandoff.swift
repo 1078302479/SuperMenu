@@ -224,6 +224,12 @@ struct BackgroundHandoffSmoke {
               library.entries.first?.fileName == "two.txt" else { throw SmokeError.unexpectedResult }
         print("PASS: template names and order survive a settings round trip")
 
+        for action in [FinderAction.newText, .copyPath, .copyName, .addFavorite, .showHiddenFiles, .hideHiddenFiles] {
+            let icon = action == .newText ? MenuIcons.newFile(size: 16) : MenuIcons.action(action, size: 16)
+            guard let icon, !icon.isTemplate, icon.size == NSSize(width: 16, height: 16) else {
+                throw SmokeError.unexpectedResult
+            }
+        }
         var stagedIcons = 0
         let pointSize = NSSize(width: 16, height: 16)
         for name in DocumentTemplate.allCases.map(\.rawValue) + ["new-file", "named-file", "copy-name", "copy-path", "folder-from-name", "cut", "add-favorite"] {

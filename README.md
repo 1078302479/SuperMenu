@@ -6,7 +6,7 @@
 
 ## 下载安装
 
-前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.3.2-arm64.dmg`。首版支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
+前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.3.3-arm64.dmg`。首版支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
 
 打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。预览包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
 
