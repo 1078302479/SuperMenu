@@ -5,6 +5,8 @@ mkdir -p .build/background-test
 ./scripts/prepare-webp.sh
 webp="$(pwd -P)/.build/dependencies/libwebp-1.6.0"
 root="$(cd .build/background-test && pwd -P)"
+cache="$(pwd -P)/.build/module-cache"
+mkdir -p "$cache"
 run="$(mktemp -d "$root/run.XXXXXX")"
 volume=""
 cleanup() {
@@ -40,7 +42,7 @@ if [ "${SUPERMENU_TEST_CROSS_VOLUME:-0}" = 1 ]; then
     export SUPERMENU_TEST_VOLUME="$volume"
 fi
 
-swiftc -D SUPER_MENU_LOCAL_BUILD -D SUPERMENU_TEST -parse-as-library -module-cache-path "$root/module-cache" \
+swiftc -D SUPER_MENU_LOCAL_BUILD -D SUPERMENU_TEST -parse-as-library -module-cache-path "$cache" \
     Sources/Shared/*.swift Sources/App/*.swift \
     -I Sources/CArchive -larchive \
     -I "$webp/module" "$webp/src/.libs/libwebp.a" "$webp/sharpyuv/.libs/libsharpyuv.a" \

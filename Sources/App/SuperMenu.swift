@@ -9,6 +9,10 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var settings = Settings()
     @Published private(set) var storageAvailable = false
     @Published private(set) var extensionEnabled = false
+    @Published private(set) var extensionPermission: Bool?
+    @Published private(set) var protectedDirectoryPermission = ProtectedDirectoryPermission.unknown
+    @Published private(set) var permissionsCheckedAt: Date?
+    @Published private(set) var checkingPermissions = false
     @Published var message = ""
     @Published var showsMessage = false
     @Published var page: SettingsPage? = .overview
@@ -31,7 +35,6 @@ final class SettingsModel: ObservableObject {
     init() { refresh() }
 
     func refresh() {
-        extensionEnabled = FIFinderSyncController.isExtensionEnabled
         do {
             settings = try SharedStore.load()
             if FileAccessPolicy.usesDirectAccess, settings.transferDestinationsVersion == nil {
@@ -45,6 +48,28 @@ final class SettingsModel: ObservableObject {
         } catch {
             storageAvailable = false
         }
+    }
+
+    func refreshPermissions() async {
+        guard !checkingPermissions else { return }
+        checkingPermissions = true
+        defer { checkingPermissions = false }
+        async let protected = Task.detached(priority: .utility) { ProtectedDirectoryPermission.check() }.value
+        let enabled = await FinderExtensionPermission.isEnabled()
+        let previous = extensionEnabled
+        extensionPermission = enabled
+        if let enabled { extensionEnabled = enabled }
+        protectedDirectoryPermission = await protected
+        permissionsCheckedAt = Date()
+        if previous != extensionEnabled {
+            DistributedNotificationCenter.default().post(name: SharedStore.settingsChanged, object: nil)
+        }
+    }
+
+    func openFinderExtensionSettings() { FIFinderSyncController.showExtensionManagementInterface() }
+
+    func openFullDiskAccessSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
     }
 
     func addFolder(asFavorite: Bool = false) {
@@ -743,7 +768,7 @@ final class SettingsModel: ObservableObject {
             try await integrations.perform(request.action, urls: urls, settings: current)
         case .convertImage:
             guard let format = request.imageFormat else { throw SuperMenuError.invalidTarget }
-            try imageTools.convert(urls, format: format, settings: current)
+            try await imageTools.convert(urls, format: format, settings: current)
         case .setFileIcon, .restoreFileIcon:
             try await imageTools.setIcons(urls, restore: request.action == .restoreFileIcon, settings: current,
                                           iconID: request.fileIconID, removesCustomIcon: request.removesCustomIcon == true)
@@ -997,6 +1022,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private var preferencesObserver: NSObjectProtocol?
     private var services: ServiceRouter?
+    private var showingExtensionPrompt = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         services = ServiceRouter(text: model.integrations.textServices)
@@ -1014,13 +1040,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.model.updates.check(automatically: true, enabled: self.model.settings.automaticallyChecksForUpdates ?? true)
             }
         }
+        Task { await model.refreshPermissions() }
+        Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.model.refreshPermissions() }
+        }
         model.recoverExpiredCut()
         Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.model.recoverExpiredCut() }
         }
         DispatchQueue.main.async { [weak self] in
-            guard let self, !self.receivedRequest, self.model.settings.launchesQuietly != true else { return }
-            self.showSettings()
+            guard let self, !self.receivedRequest else { return }
+            if self.model.settings.launchesQuietly == true { self.checkFinderExtension() }
+            else { self.showSettings() }
         }
     }
 
@@ -1055,11 +1086,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         model.refresh()
+        Task { await model.refreshPermissions() }
         model.recoverExpiredCut()
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag { showSettings() }
+        showSettings()
         return true
     }
 
@@ -1090,6 +1122,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        checkFinderExtension()
+    }
+
+    private func checkFinderExtension() {
+        guard !showingExtensionPrompt else { return }
+        showingExtensionPrompt = true
+        Task { @MainActor in
+            defer { showingExtensionPrompt = false }
+            // Allow the extension registration state to settle after launch or reopening.
+            try? await Task.sleep(for: .milliseconds(700))
+            guard await FinderExtensionPermission.isEnabled() == false else { return }
+            let alert = NSAlert()
+            alert.messageText = "请启用增强右键的访达扩展"
+            alert.informativeText = "在系统设置中启用增强右键的访达扩展，才能在访达中使用右键菜单。"
+            alert.addButton(withTitle: "打开系统设置")
+            alert.addButton(withTitle: "稍后")
+            NSApp.activate(ignoringOtherApps: true)
+            if alert.runModal() == .alertFirstButtonReturn {
+                FIFinderSyncController.showExtensionManagementInterface()
+            }
+        }
     }
 }
 

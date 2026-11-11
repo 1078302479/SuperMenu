@@ -154,7 +154,7 @@ struct SettingsView: View {
             }
             Spacer(minLength: 12)
             Divider()
-            Text(version.isEmpty ? "开发预览" : "\(version) 开发预览")
+            Text(version.isEmpty ? "增强右键" : "版本 \(version)")
                 .font(.system(size: 11)).foregroundStyle(Color.settingsMuted).padding(.leading, 8)
         }
         .padding(.horizontal, 13).padding(.vertical, 21)

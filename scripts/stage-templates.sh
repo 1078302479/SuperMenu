@@ -26,6 +26,16 @@ stage docx Resources/Templates/blank.docx
 stage xlsx Resources/Templates/blank.xlsx
 stage pptx Resources/Templates/blank.pptx
 
+# Include the local review assets in both app and Finder extension bundles.
+for directory in TemplateIcons FileIconPresets; do
+    if [ -d "Resources/ReferenceIcons/$directory" ]; then
+        mkdir -p "$bundle/Contents/Resources/$directory"
+        for icon in Resources/ReferenceIcons/"$directory"/*.png; do
+            if [ -f "$icon" ]; then cp "$icon" "$bundle/Contents/Resources/$directory/"; fi
+        done
+    fi
+done
+
 if [ "${SUPERMENU_INCLUDE_REFERENCE_ASSETS:-1}" = 0 ]; then
     exit 0
 fi
@@ -101,6 +111,6 @@ ICONS
 
 # Extract the local reference assets into the development bundle only.
 if [ -f "$reference/Assets.car" ]; then
-    mkdir -p .build/file-icon-module-cache
-    swift -module-cache-path .build/file-icon-module-cache scripts/stage-file-icons.swift         "${reference%/Contents/Resources}" "$bundle/Contents/Resources/FileIconPresets"
+    mkdir -p .build/module-cache
+    swift -module-cache-path .build/module-cache scripts/stage-file-icons.swift         "${reference%/Contents/Resources}" "$bundle/Contents/Resources/FileIconPresets"
 fi

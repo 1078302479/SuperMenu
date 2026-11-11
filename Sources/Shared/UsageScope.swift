@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 enum UsageScope: String, Codable, CaseIterable, Identifiable {
     case systemDisk, allDisks
@@ -46,6 +47,16 @@ enum FileAccessPolicy {
                 .map { URL(fileURLWithPath: $0.path, isDirectory: true) })
         }
         var roots: Set<URL> = [URL(fileURLWithPath: "/", isDirectory: true)]
+        // Register the real home explicitly: the sandbox home is the extension's
+        // container, and relying on / alone leaves Finder's existing windows
+        // waiting for root observation to propagate on a cold launch.
+        if let home = getpwuid(getuid())?.pointee.pw_dir {
+            let userHome = URL(fileURLWithPath: String(cString: home), isDirectory: true)
+            roots.insert(userHome)
+            for name in ["Desktop", "Documents", "Downloads", "Pictures", "Music", "Movies"] {
+                roots.insert(userHome.appendingPathComponent(name, isDirectory: true))
+            }
+        }
         if settings.usageScope == .allDisks {
             roots.formUnion(FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil,
                                                                  options: [.skipHiddenVolumes]) ?? [])

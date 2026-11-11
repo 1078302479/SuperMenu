@@ -2,13 +2,22 @@
 
 增强右键是一款免费、开源的 macOS 访达右键工具，无需订阅。项目以覆盖[超级右键 PRO](https://aodo365.com/irightmousepro.html)的全部功能为目标，是独立开源项目。
 
-> **首个公开预览版 v0.3.2。** 功能对标仍在进行，当前版本的可用功能和已知差异见下文。
+> **正式发布 v0.4.0。** 免费开源，功能对标仍在进行；当前可用功能和已知差异见下文。
 
 ## 下载安装
 
-前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.3.4-arm64.dmg`。首版支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
+前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.4.0-arm64.dmg`。当前安装包支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
 
-打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。预览包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
+打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。安装包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
+
+## v0.4.0 更新
+
+- 修复刚启用访达扩展后首次右键缺菜单：递归压缩菜单图标实际图像表示，避免携带大图和延迟加载资源。本机连续五轮冷启动首击测试通过。
+- 恢复菜单、应用和文件夹预设图标，主程序与扩展包含相同资源。
+- 图片转换直接导出到原目录，成功时不弹框，重名自动编号并保留原图。
+- 通用设置新增权限状态、每 30 秒刷新、立即检查及系统设置入口。受保护目录检测不等同于完全磁盘访问开关的精确状态。
+- 保留自动和手动检查更新；检查到新版本后前往 GitHub 下载，目前不自动安装。
+- 构建共用缓存，提供旧构建清理工具。
 
 ## 当前功能
 
@@ -49,7 +58,16 @@ SUPERMENU_INCLUDE_REFERENCE_ASSETS=0 ./scripts/test-background.sh
 
 后台测试覆盖文件操作、同名冲突保护、模板和设置兼容性，以及 Finder 请求交接。它使用独立的临时应用标识和测试目录。
 
-项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。本机开发可读取已安装参考应用的部分图标和模板，这些素材仅用于本机调试，源码预览版使用上方命令构建。
+构建与测试共用 `.build/module-cache`，避免每个验收版本重复占用编译缓存。清理旧构建可先预览，再执行：
+
+```sh
+python3 scripts/clean-builds.py
+python3 scripts/clean-builds.py --apply
+```
+
+清理会保留源码、资源、最新本地和验收应用、`.build/local/shared` 用户设置、依赖与共享编译缓存，删除旧验收版本、历史发布产物和可重新生成的测试输出。
+
+项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。本机开发可读取已安装参考应用的部分图标和模板，这些素材仅用于本机调试，构建使用上方命令。参考图标随源码保存并打包，其来源及第三方权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md)。
 
 - [开发计划](docs/开发计划.md)
 - [功能调研与历史规划](docs/产品规划.md)

@@ -71,7 +71,7 @@ struct BackgroundHandoffSmoke {
         app.run()
     }
 
-    private static func verifyDirectAccess() async throws {
+    @MainActor private static func verifyDirectAccess() async throws {
         guard FileAccessPolicy.usesDirectAccess else { throw ToolboxError.message("direct flag missing") }
         let fm = FileManager.default
         let fixture = fm.temporaryDirectory.appendingPathComponent("SuperMenu-direct-" + UUID().uuidString)
@@ -106,6 +106,11 @@ struct BackgroundHandoffSmoke {
         let link = fixture.appendingPathComponent("external")
         try fm.createSymbolicLink(at: link, withDestinationURL: URL(fileURLWithPath: "/Volumes"))
         guard !FileAccessPolicy.allows(link.appendingPathComponent("item"), settings: settings) else { throw ToolboxError.message("system scope allows external symlink") }
+        let startupRoots = FileAccessPolicy.monitoredDirectories(settings: settings)
+        let accountHome = URL(fileURLWithPath: String(cString: getpwuid(getuid())!.pointee.pw_dir), isDirectory: true)
+        guard startupRoots.contains(accountHome),
+              startupRoots.contains(accountHome.appendingPathComponent("Downloads", isDirectory: true))
+        else { throw ToolboxError.message("cold start must monitor real home and Downloads explicitly") }
         settings.usageScope = .allDisks
         guard FileAccessPolicy.allows(external, settings: settings),
               !FileAccessPolicy.allows(URL(string: "https://example.com")!, settings: settings),
@@ -120,6 +125,22 @@ struct BackgroundHandoffSmoke {
             defer { try? fm.removeItem(at: externalFile) }
             guard try String(contentsOf: externalFile, encoding: .utf8) == "external" else { throw SmokeError.unexpectedResult }
         }
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 8, pixelsHigh: 8, bitsPerSample: 8,
+                                            samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+              let png = bitmap.representation(using: .png, properties: [:]) else { throw SmokeError.unexpectedResult }
+        let source = fixture.appendingPathComponent("silent-conversion.png")
+        try png.write(to: source)
+        let windowsBefore = NSApp?.windows.count ?? 0
+        try await ImageToolsController().convert([source], format: .jpg, settings: settings)
+        let output = fixture.appendingPathComponent("silent-conversion.jpg")
+        guard FileManager.default.fileExists(atPath: output.path),
+              (NSApp?.windows.count ?? 0) == windowsBefore, try Data(contentsOf: source) == png
+        else { throw SmokeError.unexpectedResult }
+        try await ImageToolsController().convert([source], format: .jpg, settings: settings)
+        guard FileManager.default.fileExists(atPath: fixture.appendingPathComponent("silent-conversion 2.jpg").path)
+        else { throw SmokeError.unexpectedResult }
+        print("PASS: silent conversion exports beside the source, preserves source bytes and numbers collisions")
         print("PASS: direct file creation, scoped operations and cut without directory grants; disk scope and symlink filtering")
     }
 
@@ -134,6 +155,43 @@ struct BackgroundHandoffSmoke {
               FileIconLibrary.presets.allSatisfy({ FileIconLibrary.image($0)?.isValid == true }),
               MenuIcons.action(.openTerminal, size: 16)?.isValid == true
         else { throw SmokeError.unexpectedResult }
+        guard FinderExtensionPermission.enabledRegistration(in: "+    io.github.1078302479.SuperMenu.Finder(0.3.4) /Applications/增强右键.app"),
+              !FinderExtensionPermission.enabledRegistration(in: "-    io.github.1078302479.SuperMenu.Finder(0.3.4)"),
+              !FinderExtensionPermission.enabledRegistration(in: "+    io.github.other.Finder(1.0)"),
+              FinderExtensionPermission.enabledRegistration(in: "-    io.github.1078302479.SuperMenu.Finder(0.3.7)\n+    io.github.1078302479.SuperMenu.Finder(0.3.4)")
+        else { throw SmokeError.unexpectedResult }
+        guard ProtectedDirectoryPermission.result(errors: [ENOENT, ENOENT]) == .unknown,
+              ProtectedDirectoryPermission.result(errors: [EPERM, ENOENT]) == .denied,
+              ProtectedDirectoryPermission.result(errors: [EACCES, EPERM]) == .denied,
+              ProtectedDirectoryPermission.result(errors: [0, EPERM]) == .accessible
+        else { throw SmokeError.unexpectedResult }
+        print("PASS: permission probe distinguishes denied, accessible and unavailable targets")
+        let transferMenu = NSMenu()
+        let largeIcon = NSImage(size: NSSize(width: 1024, height: 1024))
+        let largeBitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1024, pixelsHigh: 1024,
+                                           bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                           isPlanar: false, colorSpaceName: .deviceRGB,
+                                           bytesPerRow: 0, bitsPerPixel: 0)!
+        largeIcon.addRepresentation(largeBitmap)
+        let transferItem = NSMenuItem(title: "Large icon", action: nil, keyEquivalent: "")
+        transferItem.image = largeIcon
+        let childMenu = NSMenu()
+        let child = NSMenuItem(title: "System folder", action: nil, keyEquivalent: "")
+        child.image = NSWorkspace.shared.icon(forFile: fixture.path)
+        child.isEnabled = false
+        childMenu.addItem(child)
+        transferItem.submenu = childMenu
+        transferMenu.addItem(transferItem)
+        MenuIcons.prepareForFinder(transferMenu)
+        for item in [transferItem, child] {
+            guard let icon = item.image, icon.representations.count == 1,
+                  icon.representations[0].pixelsWide == 32, icon.representations[0].pixelsHigh == 32,
+                  icon.size == NSSize(width: 16, height: 16),
+                  (icon.tiffRepresentation?.count ?? Int.max) < 16_384
+            else { throw ToolboxError.message("Finder icon payload retains large representations") }
+        }
+        guard !child.isEnabled else { throw SmokeError.unexpectedResult }
+        print("PASS: Finder menu icons and nested system icons have bounded 32px payloads; disabled items remain disabled")
         try verifyToolbarMenu()
         try verifyNamedCreation(in: fixture)
         try verifySavedFolders(in: fixture)
@@ -235,6 +293,18 @@ struct BackgroundHandoffSmoke {
             let icon = action == .newText ? MenuIcons.newFile(size: 16) : MenuIcons.action(action, size: 16)
             guard let icon, !icon.isTemplate, icon.size == NSSize(width: 16, height: 16) else {
                 throw SmokeError.unexpectedResult
+            }
+        }
+        for action in [FinderAction.copyToFolder, .moveToFolder] {
+            guard let icon = MenuIcons.action(action, size: 16), icon.isValid, !icon.isTemplate else {
+                throw SmokeError.unexpectedResult
+            }
+        }
+        let reviewApps = ["PyCharm", "WebStorm", "Android Studio", "AppCode", "DataGrip", "GoLand", "Rider", "RubyMine"]
+        for app in reviewApps {
+            if Bundle.main.url(forResource: "app-" + app, withExtension: "png", subdirectory: "TemplateIcons") != nil {
+                guard let icon = MenuIcons.referenceImage(named: "app-" + app, size: 20),
+                      icon.isValid, !icon.isTemplate else { throw SmokeError.unexpectedResult }
             }
         }
         var stagedIcons = 0

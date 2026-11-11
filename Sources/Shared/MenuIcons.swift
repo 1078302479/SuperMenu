@@ -5,6 +5,8 @@ enum MenuIcons {
     private static let actionNames: [FinderAction: String] = [
         .copyName: "copy-name",
         .copyPath: "copy-path",
+        .copyToFolder: "copy-to",
+        .moveToFolder: "move-to",
         .folderFromName: "folder-from-name",
         .openTerminal: "app-Terminal",
         .openFavorite: "nav-favorites",
@@ -38,6 +40,7 @@ enum MenuIcons {
     private static let specifications: [(String, String, NSColor)] = [
         ("new-file", "doc.badge.plus", .systemCyan), ("named-file", "doc.badge.plus", .systemCyan),
         ("copy-name", "doc.text", .systemCyan), ("copy-path", "link", .systemGreen),
+        ("copy-to", "doc.on.doc.fill", .systemGreen), ("move-to", "folder.fill", .systemBlue),
         ("folder-from-name", "folder.badge.plus", .systemBlue), ("cut", "scissors", .systemCyan),
         ("add-favorite", "heart.fill", .systemPink), ("nav-favorites", "heart.fill", .systemPink),
         ("file-info", "info", .systemBlue), ("delete", "trash", .systemRed),
@@ -81,22 +84,21 @@ enum MenuIcons {
         return image.tiffRepresentation.flatMap(NSImage.init(data:))
     }
 
-    private static let originals: [String: NSImage] = {
-        var icons: [String: NSImage] = [:]
-        let additional = ["nav-general", "nav-templates", "nav-send", "nav-favorites", "nav-file-icons", "nav-toolbox", "text-baidu", "text-google", "text-qrCode"]
-        let apps = ["Android Studio", "AppCode", "CLion", "CotEditor", "DataGrip", "Emacs", "GoLand", "HBuilderX", "Hyper", "IDEA", "iTerm2", "MarkText", "Obsidian", "PhpStorm", "PyCharm", "Rider", "RubyMine", "Sublime Merge", "Sublime Text", "Tabby", "Terminal", "Typora", "Visual Studio", "VSCode", "Warp", "WebStorm"].map { "app-" + $0 }
-        for name in DocumentTemplate.allCases.map(\.rawValue) + ["new-file", "named-file"] + Array(actionNames.values) + additional + apps {
-            let bundled = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "TemplateIcons")
-                .flatMap { NSImage(contentsOf: $0) }
-            guard let icon = bundled ?? coloredIcon(named: name), icon.isValid else { continue }
-            icon.isTemplate = false
-            icons[name] = icon
-        }
-        return icons
-    }()
+    // Load only the icon requested by this menu instead of decoding the whole library
+    // during the first Finder callback.
+    private static var originals: [String: NSImage] = [:]
+    private static let iconLock = NSLock()
 
     static func referenceImage(named name: String, size: CGFloat) -> NSImage? {
-        originals[name].map { sized($0, to: size) }
+        iconLock.lock()
+        defer { iconLock.unlock() }
+        if let cached = originals[name] { return sized(cached, to: size) }
+        let bundled = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "TemplateIcons")
+            .flatMap { NSImage(contentsOf: $0) }
+        guard let icon = bundled ?? coloredIcon(named: name), icon.isValid else { return nil }
+        icon.isTemplate = false
+        originals[name] = icon
+        return sized(icon, to: size)
     }
 
     static func action(_ action: FinderAction, size: CGFloat) -> NSImage? {
@@ -143,6 +145,40 @@ enum MenuIcons {
 
     static func namedFile(size: CGFloat) -> NSImage {
         referenceImage(named: "named-file", size: size) ?? document(extension: "", size: size)
+    }
+
+    /// Keep the Finder XPC payload independent of the source icon's 512/1024px
+    /// representations and lazy Icon Services providers. Logical size alone does
+    /// not resize NSImage's underlying representations.
+    static func prepareForFinder(_ menu: NSMenu) {
+        for item in menu.items {
+            if let source = item.image { item.image = finderImage(source) }
+            if let submenu = item.submenu { prepareForFinder(submenu) }
+        }
+    }
+
+    static func finderImage(_ source: NSImage) -> NSImage {
+        let points: CGFloat = 16
+        let pixels = 32
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
+                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                            isPlanar: false, colorSpaceName: .deviceRGB,
+                                            bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: bitmap) else {
+            return sized(source, to: points)
+        }
+        let previous = NSGraphicsContext.current
+        NSGraphicsContext.current = context
+        context.imageInterpolation = .high
+        context.cgContext.scaleBy(x: 2, y: 2)
+        source.draw(in: NSRect(x: 0, y: 0, width: points, height: points), from: .zero,
+                    operation: .sourceOver, fraction: 1, respectFlipped: false, hints: nil)
+        NSGraphicsContext.current = previous
+        bitmap.size = NSSize(width: points, height: points)
+        let image = NSImage(size: bitmap.size)
+        image.addRepresentation(bitmap)
+        image.isTemplate = source.isTemplate
+        return image
     }
 
     private static func sized(_ source: NSImage, to size: CGFloat) -> NSImage {

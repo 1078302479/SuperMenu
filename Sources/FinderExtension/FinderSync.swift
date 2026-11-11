@@ -7,33 +7,82 @@ final class FinderSync: FIFinderSync {
     private let log = Logger(subsystem: "io.github.1078302479.SuperMenu", category: "Finder")
     private var observation: NSObjectProtocol?
     private var volumeObservers: [NSObjectProtocol] = []
+    private var settings = Settings()
+    private var settingsRetry: DispatchWorkItem?
+    private var retryCount = 0
+    private var menuSelection: [URL]?
 
     override init() {
         super.init()
+        let started = Date()
+        do { settings = try SharedStore.load() }
+        catch { log.error("启动时暂未读取到共享配置：\(error.localizedDescription, privacy: .public)") }
+        FIFinderSyncController.default().directoryURLs = FileAccessPolicy.monitoredDirectories(settings: settings)
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification] {
             volumeObservers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 self?.refreshFolders()
             })
         }
-        refreshFolders()
         observation = DistributedNotificationCenter.default().addObserver(
             forName: SharedStore.settingsChanged, object: nil, queue: .main
         ) { [weak self] _ in self?.refreshFolders() }
+        DispatchQueue.main.async { [weak self] in self?.prepareMenuResources() }
+        log.notice("扩展初始化完成，监听目录数：\(FIFinderSyncController.default().directoryURLs.count)，耗时：\(Date().timeIntervalSince(started), privacy: .public)秒")
     }
 
     deinit {
+        settingsRetry?.cancel()
         volumeObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         if let observation { DistributedNotificationCenter.default().removeObserver(observation) }
     }
 
     private func refreshFolders() {
         do {
-            let settings = try SharedStore.load()
-            FIFinderSyncController.default().directoryURLs = FileAccessPolicy.monitoredDirectories(settings: settings)
+            settings = try SharedStore.load()
+            let controller = FIFinderSyncController.default()
+            let directories = FileAccessPolicy.monitoredDirectories(settings: settings)
+            if controller.directoryURLs != directories { controller.directoryURLs = directories }
+            settingsRetry?.cancel()
+            retryCount = 0
         } catch {
-            FIFinderSyncController.default().directoryURLs = []
             log.error("无法读取共享配置：\(error.localizedDescription, privacy: .public)")
+            guard retryCount < 5 else { return }
+            retryCount += 1
+            settingsRetry?.cancel()
+            let retry = DispatchWorkItem { [weak self] in self?.refreshFolders() }
+            settingsRetry = retry
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1, execute: retry)
         }
+    }
+
+    private func prepareMenuResources() {
+        // Finder has a short deadline for the first menu callback. Warm AppKit,
+        // Launch Services and image decoding before it asks us to construct one.
+        let started = Date()
+        _ = NSMenu(title: "增强右键")
+        for action in FinderAction.allCases where settings.isEnabled(action) {
+            _ = MenuIcons.action(action, size: 16)
+        }
+        _ = MenuIcons.newFile(size: 16)
+        _ = MenuIcons.namedFile(size: 16)
+        for template in settings.orderedTemplates where template.isAvailable {
+            _ = MenuIcons.document(extension: template.rawValue, size: 16)
+        }
+        for entry in settings.applications ?? ApplicationCatalog.entries where entry.enabled {
+            for id in [entry.bundleID] + (entry.alternateBundleIdentifiers ?? []) {
+                _ = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+            }
+            _ = MenuIcons.application(entry, size: 16)
+        }
+        for folder in settings.availableFavorites + settings.availableCopyDestinations {
+            _ = MenuIcons.folder(at: URL(fileURLWithPath: folder.path))
+        }
+        _ = UTType(filenameExtension: "jpg")?.conforms(to: .image)
+        log.notice("菜单资源准备完成，耗时：\(Date().timeIntervalSince(started), privacy: .public)秒")
+    }
+
+    override func beginObservingDirectory(at url: URL) {
+        log.notice("已开始监听访达目录")
     }
 
     override var toolbarItemName: String { "增强右键" }
@@ -45,18 +94,29 @@ final class FinderSync: FIFinderSync {
     }
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
-        guard let settings = try? SharedStore.load() else { return nil }
+        let started = Date()
+        let settings = settings
         let controller = FIFinderSyncController.default()
+        let selected = controller.selectedItemURLs() ?? []
+        let folder = controller.targetedURL()
+        menuSelection = selected
+        var resultCount = 0
+        defer {
+            menuSelection = nil
+            log.notice("菜单回调完成，类型：\(menuKind.rawValue)，选中数：\(selected.count)，目标存在：\(folder != nil)，输出数：\(resultCount)，耗时：\(Date().timeIntervalSince(started), privacy: .public)秒")
+        }
         if FileAccessPolicy.usesDirectAccess {
-            let urls = menuKind == .contextualMenuForItems ? (controller.selectedItemURLs() ?? []) : [controller.targetedURL()].compactMap { $0 }
+            let urls = menuKind == .contextualMenuForItems ? selected : [folder].compactMap { $0 }
             guard urls.allSatisfy({ FileAccessPolicy.allows($0, settings: settings) }) else { return nil }
         }
         let menu = NSMenu(title: "增强右键")
         switch menuKind {
         case .toolbarItemMenu:
-            return Self.toolbarMenu(settings: settings, target: self)
+            let toolbar = Self.toolbarMenu(settings: settings, target: self)
+            MenuIcons.prepareForFinder(toolbar)
+            return toolbar
         case .contextualMenuForContainer, .contextualMenuForSidebar:
-            guard controller.targetedURL() != nil else { return nil }
+            guard folder != nil else { return nil }
             Self.addTemplates(to: menu, settings: settings, target: self)
             if let batch = try? CutState.load() {
                 let pending = batch.isPending()
@@ -78,9 +138,8 @@ final class FinderSync: FIFinderSync {
             addApplications(to: menu, settings: settings)
             addFavorites(to: menu, settings: settings)
         case .contextualMenuForItems:
-            let selected = controller.selectedItemURLs() ?? []
             guard !selected.isEmpty else { return nil }
-            if let folder = controller.targetedURL(), FileAccessPolicy.allows(folder, settings: settings) {
+            if let folder, FileAccessPolicy.allows(folder, settings: settings) {
                 Self.addTemplates(to: menu, settings: settings, target: self)
             }
             if selected.allSatisfy({ UTType(filenameExtension: $0.pathExtension)?.conforms(to: .image) == true }) {
@@ -119,7 +178,6 @@ final class FinderSync: FIFinderSync {
         default:
             return nil
         }
-        let selected = controller.selectedItemURLs() ?? []
         let scenes: Set<MenuScene>
         if menuKind == .contextualMenuForItems {
             scenes = Set(selected.map {
@@ -128,6 +186,8 @@ final class FinderSync: FIFinderSync {
             })
         } else { scenes = [.background] }
         Self.customize(menu, settings: settings, scenes: scenes, count: scenes == [.background] ? 1 : selected.count)
+        MenuIcons.prepareForFinder(menu)
+        resultCount = menu.items.count
         return menu.items.isEmpty ? nil : menu
     }
 
@@ -510,7 +570,7 @@ final class FinderSync: FIFinderSync {
     }
 
     private var selection: [URL] {
-        FIFinderSyncController.default().selectedItemURLs() ?? []
+        menuSelection ?? FIFinderSyncController.default().selectedItemURLs() ?? []
     }
 
     private func perform(_ action: FinderAction, urls: [URL], template: DocumentTemplate? = nil,
