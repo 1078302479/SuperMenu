@@ -141,7 +141,8 @@ swift -module-cache-path "$cache" scripts/render-icon.swift design/app-icon.svg 
 sips -s format icns "$stage/icon.png" --out "$app/Contents/Resources/AppIcon.icns" >/dev/null
 cp Resources/MenuBarIcon.svg "$app/Contents/Resources/"
 mkdir -p "$app/Contents/Resources/Licenses"
-cp LICENSE "$app/Contents/Resources/Licenses/MIT.txt"
+cp LICENSE "$app/Contents/Resources/Licenses/Apache-2.0.txt"
+cp NOTICE "$app/Contents/Resources/Licenses/NOTICE.txt"
 cp "$webp/COPYING" "$app/Contents/Resources/Licenses/libwebp-COPYING"
 cp "$webp/PATENTS" "$app/Contents/Resources/Licenses/libwebp-PATENTS"
 

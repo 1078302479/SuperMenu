@@ -135,8 +135,12 @@ python3 scripts/clean-builds.py --apply
 
 ## 许可与资源来源
 
-项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。随包提供的第三方参考图标和空白种子文档不适用 MIT 授权，来源及权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md) 和 [模板来源说明](Resources/Templates/来源说明.md)。
+Copyright © 2026 1078302479。贡献方式见 [维护与贡献](CONTRIBUTING.md)。
+
+项目原创代码和资源采用 [Apache License 2.0](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。随包提供的第三方参考图标和空白种子文档不适用本项目的 Apache-2.0 授权，来源及权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md) 和 [模板来源说明](Resources/Templates/来源说明.md)。
 
 - [开发计划](docs/开发计划.md)
 - [功能调研与历史规划](docs/产品规划.md)
 - [交互设计稿](design/index.html)
+
+本次协议调整适用于仓库当前及后续按 Apache-2.0 授权的原创内容；已发布的 v0.4.1 及更早安装包仍保留各自随附的许可。

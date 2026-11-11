@@ -128,4 +128,6 @@ Cleanup retains source, resources, the latest local/review apps, local user sett
 
 ## License and resource sources
 
-Original project code and resources use the [MIT license](LICENSE). [libwebp](ThirdParty/README.md) retains its own license. Third-party reference icons and seed documents are not covered by MIT; see [icon sources](Resources/ReferenceIcons/来源说明.md) and [template sources](Resources/Templates/来源说明.md).
+Original project code and resources use the [Apache License 2.0](LICENSE). [libwebp](ThirdParty/README.md) retains its own license. Third-party reference icons and seed documents are not covered by the project’s Apache-2.0 license; see [icon sources](Resources/ReferenceIcons/来源说明.md) and [template sources](Resources/Templates/来源说明.md).
+
+Copyright © 2026 1078302479. See [Contributing](CONTRIBUTING.md) for development and contribution guidelines. This change applies to original content licensed under Apache-2.0 in the current repository and future revisions. Existing v0.4.1 and earlier release packages retain their included licenses.
