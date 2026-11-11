@@ -22,9 +22,16 @@ stage() {
     fi
 }
 
-stage docx Resources/Templates/blank.docx
-stage xlsx Resources/Templates/blank.xlsx
-stage pptx Resources/Templates/blank.pptx
+# Every advertised binary format must ship with a real document seed, including
+# distribution builds. Never depend on an installed reference app for templates.
+for format in docx xlsx pptx wps et dps pages numbers key ai psd; do
+    source="Resources/Templates/blank.$format"
+    if [ ! -s "$source" ]; then
+        echo "Missing required bundled template: $source" >&2
+        exit 1
+    fi
+    stage "$format" "$source"
+done
 
 # Include the local review assets in both app and Finder extension bundles.
 for directory in TemplateIcons FileIconPresets; do
@@ -39,16 +46,6 @@ done
 if [ "${SUPERMENU_INCLUDE_REFERENCE_ASSETS:-1}" = 0 ]; then
     exit 0
 fi
-
-# Use the installed reference app only for local developer builds.
-stage wps "$reference/WPS_wps.wps"
-stage et "$reference/WPS_et.et"
-stage dps "$reference/WPS_dps.dps"
-stage pages "$reference/Pages.pages"
-stage numbers "$reference/Numbers.numbers"
-stage key "$reference/Keynote.key"
-stage ai "$reference/Ai.ai"
-stage psd "$reference/PSD.psd"
 
 # The reference PNGs are local design assets and are not tracked in Git.
 icon_index=design/reference-icons/index.json

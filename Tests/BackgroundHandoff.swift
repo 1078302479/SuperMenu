@@ -260,7 +260,8 @@ struct BackgroundHandoffSmoke {
     private static func verifyTemplates(in fixture: URL) throws {
         let legacyJSON = Data(#"{"folders":[],"enabled":["newText","copyPath"]}"#.utf8)
         var settings = try JSONDecoder().decode(Settings.self, from: legacyJSON)
-        guard DocumentTemplate.allCases.count == 15,
+        guard DocumentTemplate.allCases.allSatisfy(\.isAvailable),
+              DocumentTemplate.allCases.count == 15,
               Set(DocumentTemplate.allCases.map(\.menuTag)).count == 15,
               settings.visibleTemplates == DocumentTemplate.allCases.filter(\.isAvailable),
               settings.enabled == [.newText, .copyPath] else { throw SmokeError.unexpectedResult }

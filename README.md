@@ -2,13 +2,19 @@
 
 增强右键是一款免费、开源的 macOS 访达右键工具，无需订阅。项目以覆盖[超级右键 PRO](https://aodo365.com/irightmousepro.html)的全部功能为目标，是独立开源项目。
 
-> **正式发布 v0.4.0。** 免费开源，功能对标仍在进行；当前可用功能和已知差异见下文。
+> **正式发布 v0.4.1。** 免费开源，功能对标仍在进行；当前可用功能和已知差异见下文。
 
 ## 下载安装
 
-前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.4.0-arm64.dmg`。当前安装包支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
+前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.4.1-arm64.dmg`。当前安装包支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
 
 打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。安装包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
+
+## v0.4.1 更新
+
+- 补齐 WPS 文字、WPS 表格、WPS 演示、Pages、Numbers、Keynote、AI、PSD 内置空白模板，共支持 15 种内置格式。
+- 分发包和源码构建都包含完整模板；缺失任一二进制模板时构建直接失败。
+- 逐项创建全部格式并检查文件签名和结构，防止只有菜单可以勾选却不能创建文件。
 
 ## v0.4.0 更新
 
@@ -31,7 +37,7 @@
 | 图片与应用 | PNG、JPG、WebP、HEIC、ICNS 转换和 macOS、iPhone、iPad、Apple Watch 图标导出，设置墙纸，在 Terminal、iTerm2 或自定义应用打开。 |
 | 系统服务 | 百度翻译、谷歌翻译、二维码自动复制，以及通过文件服务处理已下载的云盘文件。 |
 
-源码版附带项目生成的 Office 模板。WPS、iWork、AI 和 PSD 格式可以通过导入相应的空白文件使用。应用提供系统图标和自定义图标入口。
+内置 TXT、RTF、XML、Markdown、Word、Excel、PPT、WPS 文字、WPS 表格、WPS 演示、Pages、Numbers、Keynote、AI、PSD 共 15 种格式，无需另行导入。模板来源见 [来源说明](Resources/Templates/来源说明.md)。应用提供系统图标和自定义图标入口。
 
 云目录的修饰键、中键和三指触发仍待实现。iShot、FastZip 和 DiskMap 当前提供打开入口，任务联动仍待实现。密码归档和部分特殊归档条目也尚未支持。Finder、登录项、系统服务和第三方应用仍有待完成的实机兼容性验证。
 
@@ -67,7 +73,7 @@ python3 scripts/clean-builds.py --apply
 
 清理会保留源码、资源、最新本地和验收应用、`.build/local/shared` 用户设置、依赖与共享编译缓存，删除旧验收版本、历史发布产物和可重新生成的测试输出。
 
-项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。本机开发可读取已安装参考应用的部分图标和模板，这些素材仅用于本机调试，构建使用上方命令。参考图标随源码保存并打包，其来源及第三方权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md)。
+项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。随包提供的第三方参考图标和空白种子文档不适用 MIT 授权，来源及权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md) 和 [模板来源说明](Resources/Templates/来源说明.md)。
 
 - [开发计划](docs/开发计划.md)
 - [功能调研与历史规划](docs/产品规划.md)
