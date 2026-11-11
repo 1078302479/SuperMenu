@@ -1,36 +1,71 @@
-# 增强右键
+<div align="center">
+  <img src="docs/images/app-icon.png" width="128" alt="增强右键应用图标">
+  <h1>增强右键 for macOS</h1>
+  <p>把新建文件、图片转换和常用操作，放进访达右键菜单。</p>
+  <p>A native macOS Finder extension for creating files, converting images, and everyday file actions.</p>
+  <p><strong>免费开源 · 无需订阅 · 原生 macOS 体验</strong></p>
+  <p><strong>简体中文</strong> · <a href="README.en.md">English</a></p>
+  <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">macOS 下载页</a> · <a href="#界面预览">界面截图</a> · <a href="#首次使用">使用说明</a> · <a href="#从源码构建">从源码构建</a></p>
+</div>
 
-增强右键是一款免费、开源的 macOS 访达右键工具，无需订阅。项目以覆盖[超级右键 PRO](https://aodo365.com/irightmousepro.html)的全部功能为目标，是独立开源项目。
+**最新正式版：[v0.4.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.4.1)**，已补齐全部 15 种内置新建格式。修复内容见 [更新记录](CHANGELOG.md)。
 
-> **正式发布 v0.4.1。** 免费开源，功能对标仍在进行；当前可用功能和已知差异见下文。
+## 简介
 
-## 下载安装
+增强右键是一款使用 Swift、AppKit 和 SwiftUI 开发的 macOS 访达右键增强工具。你可以在文件夹中直接新建文件，将文件复制或移动到常用位置，转换图片格式，并按自己的习惯调整菜单名称和顺序。
 
-前往 [GitHub Releases](https://github.com/1078302479/SuperMenu/releases/latest) 下载 `SuperMenu-v0.4.1-arm64.dmg`。当前安装包支持 Apple 芯片的 Mac，要求 macOS 13 或更高版本。
+项目免费开源，无需订阅，以覆盖[超级右键 PRO](https://aodo365.com/irightmousepro.html)的全部功能为目标。目前仍有未完成项目，见[已知限制](#已知限制)。这是独立开源项目，与参考产品没有隶属关系。
 
-打开 DMG，把「增强右键」拖到「应用程序」，再按下方步骤启用访达扩展。安装包使用临时签名，尚未经过 Apple 公证。macOS 可能会拦截首次打开，具体取决于设备的安全设置。[Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)
+## 下载与安装
 
-## 实际右键菜单效果
+| 项目 | 说明 |
+| --- | --- |
+| 系统要求 | macOS 13 或更高版本 |
+| 安装包架构 | Apple 芯片（arm64） |
+| 最新版本 | [v0.4.1 正式版](https://github.com/1078302479/SuperMenu/releases/latest) |
+| 下载格式 | [DMG 安装包](https://github.com/1078302479/SuperMenu/releases/download/v0.4.1/SuperMenu-v0.4.1-arm64.dmg)、[应用 ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.4.1/SuperMenu-v0.4.1-arm64.zip)、源码及 SHA256 校验文件 |
 
-下图截自 v0.4.1 在访达中的真实右键菜单，展示文件夹空白区域的常用操作，以及展开后的「新建文件」子菜单。内置 15 种格式均带对应图标，可在设置中勾选、改名和排序。
+打开 DMG，将「增强右键」拖入「应用程序」，再从「应用程序」启动，按下方步骤启用访达扩展。
 
-![访达右键菜单实拍：常用操作与十五种新建文件格式](docs/images/context-menu-new-file.png)
+安装包使用临时签名，尚未经过 Apple 公证。若 macOS 拦截首次打开，请参阅 [Apple 关于打开应用的说明](https://support.apple.com/zh-cn/102445)。
 
-菜单内容和顺序会随所选文件、已启用功能及个人设置变化；较长菜单可上下滚动查看。
+## 界面预览
 
-## 首次使用：启用访达扩展
+### 访达右键菜单
+
+以下为 **v0.4.1 实际截图**：在文件夹空白处右键，展开「新建文件」，即可选择内置格式。截图仅裁切了菜单区域；内容和顺序随个人设置及所选项目变化，较长菜单可上下滚动。
+
+<p align="center">
+  <img src="docs/images/context-menu-new-file.png" width="650" alt="增强右键实际访达菜单：常用文件操作与15种新建格式">
+</p>
+
+## 功能
+
+| 分类 | 功能 |
+| --- | --- |
+| 新建文件 | TXT、RTF、XML、Markdown、Word、Excel、PPT、WPS 文字/表格/演示、Pages、Numbers、Keynote、AI、PSD，自定义命名和导入模板。支持逐项启用、双击改名、拖动排序、在主菜单直接显示，以及创建后自动打开和提示音。 |
+| 文件流转 | 剪切、粘贴、取消剪切，复制或移动到预设目录、最近目标或自定义路径，同名冲突处理和跨卷复制校验。 |
+| 常用目录 | 从访达添加或打开收藏，支持改名、拖动排序和重新定位。 |
+| 文件（夹）图标 | 在应用设置页导入、应用及恢复图标，支持改名和拖动排序。 |
+| 文件工具 | 拷贝路径和名称、用文件名创建文件夹、校验和、隐藏或显示文件、切换扩展名、桌面替身、隔空投送、解散文件夹、彻底删除、ZIP／7z 压缩与解压。 |
+| 图片与应用 | PNG、JPG、WebP、HEIC、ICNS 转换和 macOS、iPhone、iPad、Apple Watch 图标导出，设置墙纸，在 Terminal、iTerm2 或自定义应用打开。 |
+| 系统服务 | 百度翻译、谷歌翻译、二维码自动复制，以及通过文件服务处理已下载的云盘文件。 |
+
+内置 TXT、RTF、XML、Markdown、Word、Excel、PPT、WPS 文字、WPS 表格、WPS 演示、Pages、Numbers、Keynote、AI、PSD 共 15 种格式，无需另行导入。模板来源见 [来源说明](Resources/Templates/来源说明.md)。应用提供系统图标和自定义图标入口。
+
+## 首次使用
 
 **第一步：在软件中打开扩展设置**
 
 从「应用程序」打开「增强右键」，进入左侧的「通用设置」，在下方「权限」区域点击红框中的「打开访达扩展设置」，即可跳转到系统设置。如果启动时出现扩展未启用提示，也可以点击提示中的系统设置按钮。
 
-![第一步：在增强右键通用设置中点击打开访达扩展设置](docs/images/general-permissions.png)
+<img src="docs/images/general-permissions.png" width="900" alt="第一步：在增强右键通用设置中点击打开访达扩展设置">
 
 **第二步：在系统设置中启用增强右键**
 
 跳转后，在扩展列表中找到「增强右键」，打开右侧开关，再点击「完成」，如下图红框所示。截图中的系统界面显示为「文件提供程序」；不同 macOS 版本的位置和名称可能不同，优先使用软件内的按钮跳转。
 
-![第二步：打开增强右键扩展开关并点击完成](docs/images/enable-finder-extension.png)
+<img src="docs/images/enable-finder-extension.png" width="780" alt="第二步：打开增强右键扩展开关并点击完成">
 
 **第三步：回到软件确认状态**
 
@@ -66,38 +101,11 @@
 
 安装版配置保存在当前用户的 `~/Library/Application Support/io.github.1078302479.SuperMenu`，正常覆盖升级会保留配置。
 
-## v0.4.1 更新
-
-- 补齐 WPS 文字、WPS 表格、WPS 演示、Pages、Numbers、Keynote、AI、PSD 内置空白模板，共支持 15 种内置格式。
-- 分发包和源码构建都包含完整模板；缺失任一二进制模板时构建直接失败。
-- 逐项创建全部格式并检查文件签名和结构，防止只有菜单可以勾选却不能创建文件。
-
-## v0.4.0 更新
-
-- 修复刚启用访达扩展后首次右键缺菜单：递归压缩菜单图标实际图像表示，避免携带大图和延迟加载资源。本机连续五轮冷启动首击测试通过。
-- 恢复菜单、应用和文件夹预设图标，主程序与扩展包含相同资源。
-- 图片转换直接导出到原目录，成功时不弹框，重名自动编号并保留原图。
-- 通用设置新增权限状态、每 30 秒刷新、立即检查及系统设置入口。受保护目录检测不等同于完全磁盘访问开关的精确状态。
-- 保留自动和手动检查更新；检查到新版本后前往 GitHub 下载，目前不自动安装。
-- 构建共用缓存，提供旧构建清理工具。
-
-## 当前功能
-
-| 分类 | 功能 |
-| --- | --- |
-| 新建文件 | TXT、RTF、XML、Markdown、Word、Excel、PPT、WPS 文字/表格/演示、Pages、Numbers、Keynote、AI、PSD，自定义命名和导入模板。支持逐项启用、双击改名、拖动排序、在主菜单直接显示，以及创建后自动打开和提示音。 |
-| 文件流转 | 剪切、粘贴、取消剪切，复制或移动到预设目录、最近目标或自定义路径，同名冲突处理和跨卷复制校验。 |
-| 常用目录 | 从访达添加或打开收藏，支持改名、拖动排序和重新定位。 |
-| 文件（夹）图标 | 在应用设置页导入、应用及恢复图标，支持改名和拖动排序。 |
-| 文件工具 | 拷贝路径和名称、用文件名创建文件夹、校验和、隐藏或显示文件、切换扩展名、桌面替身、隔空投送、解散文件夹、彻底删除、ZIP／7z 压缩与解压。 |
-| 图片与应用 | PNG、JPG、WebP、HEIC、ICNS 转换和 macOS、iPhone、iPad、Apple Watch 图标导出，设置墙纸，在 Terminal、iTerm2 或自定义应用打开。 |
-| 系统服务 | 百度翻译、谷歌翻译、二维码自动复制，以及通过文件服务处理已下载的云盘文件。 |
-
-内置 TXT、RTF、XML、Markdown、Word、Excel、PPT、WPS 文字、WPS 表格、WPS 演示、Pages、Numbers、Keynote、AI、PSD 共 15 种格式，无需另行导入。模板来源见 [来源说明](Resources/Templates/来源说明.md)。应用提供系统图标和自定义图标入口。
+## 已知限制
 
 云目录的修饰键、中键和三指触发仍待实现。iShot、FastZip 和 DiskMap 当前提供打开入口，任务联动仍待实现。密码归档和部分特殊归档条目也尚未支持。Finder、登录项、系统服务和第三方应用仍有待完成的实机兼容性验证。
 
-## 从源码运行
+## 从源码构建
 
 需要 macOS 13 或更高版本及 Apple Command Line Tools。构建生成适合当前 Mac 架构的应用。
 
@@ -108,7 +116,7 @@ open ".build/local/增强右键.app"
 
 启动后按上方「首次使用」启用扩展。源码体验构建使用临时签名，配置保存在 `.build/local/shared`；安装版使用上文所述的用户配置目录。
 
-## 开发与许可
+## 开发与测试
 
 ```sh
 SUPERMENU_INCLUDE_REFERENCE_ASSETS=0 ./scripts/test-background.sh
@@ -124,6 +132,8 @@ python3 scripts/clean-builds.py --apply
 ```
 
 清理会保留源码、资源、最新本地和验收应用、`.build/local/shared` 用户设置、依赖与共享编译缓存，删除旧验收版本、历史发布产物和可重新生成的测试输出。
+
+## 许可与资源来源
 
 项目原创代码和资源采用 [MIT 许可证](LICENSE)。[libwebp](ThirdParty/README.md) 使用其自身的许可证。随包提供的第三方参考图标和空白种子文档不适用 MIT 授权，来源及权利说明见 [图标来源说明](Resources/ReferenceIcons/来源说明.md) 和 [模板来源说明](Resources/Templates/来源说明.md)。
 
