@@ -8,9 +8,8 @@
   <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">macOS 下载页</a> · <a href="#界面预览">界面截图</a> · <a href="#首次使用">使用说明</a> · <a href="#从源码构建">从源码构建</a></p>
 </div>
 
-**最新正式版：[v0.5.0](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0)**，新增云盘菜单触发、应用内下载升级与通用设置重设计。修复内容见 [更新记录](CHANGELOG.md)。
+**最新正式版：[v0.5.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.1)**，新增云盘菜单触发、应用内下载升级与通用设置重设计。修复内容见 [更新记录](CHANGELOG.md)。
 
-**准备发布：v0.5.1（候选版）**，修复访达菜单动作与图片转换目标，重新设计通用设置，并加入强制发布前检查。尚未正式发布，下方下载链接仍指向 v0.5.0。
 
 ## 简介
 
@@ -24,8 +23,8 @@
 | --- | --- |
 | 系统要求 | macOS 13 或更高版本 |
 | 安装包架构 | Apple 芯片（arm64） |
-| 最新版本 | [v0.5.0 正式版](https://github.com/1078302479/SuperMenu/releases/latest) |
-| 下载格式 | [DMG 安装包](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.dmg)、[应用 ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.zip)、源码及 SHA256 校验文件 |
+| 最新版本 | [v0.5.1 正式版](https://github.com/1078302479/SuperMenu/releases/latest) |
+| 下载格式 | [DMG 安装包](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.dmg)、[应用 ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.zip)、源码及 SHA256 校验文件 |
 
 打开 DMG，将「增强右键」拖入「应用程序」，再从「应用程序」启动，按下方步骤启用访达扩展。
 
@@ -33,13 +32,13 @@
 
 ## 界面预览
 
-### 通用设置 · v0.5.1 候选版
+### 通用设置 · v0.5.1
 
 以下为已安装应用的实际截图，不是设计稿。默认窗口展示基础偏好、软件更新、云盘菜单与权限，底部固定重新检查入口。权限颜色按截图时的真实状态显示：绿色表示就绪，橙色表示需要处理，灰色表示未知。临时签名升级后可能需要重新授权。
 
 <img src="docs/images/general-v051.png" width="1000" alt="v0.5.1 通用设置：基础偏好、软件更新、云盘触发及权限状态">
 
-### 新建文件与工具箱 · v0.5.1 候选版
+### 新建文件与工具箱 · v0.5.1
 
 <img src="docs/images/templates-v051.png" width="1000" alt="15种内置文件模板及自定义模板设置">
 

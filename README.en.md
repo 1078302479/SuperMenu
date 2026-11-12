@@ -7,9 +7,8 @@
   <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">Download for macOS</a> · <a href="#screenshots">Screenshots</a> · <a href="#first-time-setup">Setup guide</a> · <a href="#build-from-source">Build from source</a></p>
 </div>
 
-**Latest stable release: [v0.5.0](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0)**, with cloud-folder menu triggers, in-app update downloads, and redesigned General settings. See the [changelog (Chinese)](CHANGELOG.md).
+**Latest stable release: [v0.5.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.1)**, with cloud-folder menu triggers, in-app update downloads, and redesigned General settings. See the [changelog (Chinese)](CHANGELOG.md).
 
-**Upcoming: v0.5.1 (release candidate)** — fixes Finder action dispatch and image conversion targets, refreshes General settings, and adds a mandatory release preflight. Not published yet; download links below still point to v0.5.0.
 
 ## About
 
@@ -23,8 +22,8 @@ This free, independent open-source project aims to cover the features of iRightM
 | --- | --- |
 | macOS | 13 or later |
 | Download architecture | Apple silicon (arm64) |
-| Latest release | [v0.5.0](https://github.com/1078302479/SuperMenu/releases/latest) |
-| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.zip), source ZIP, and SHA256 checksums |
+| Latest release | [v0.5.1](https://github.com/1078302479/SuperMenu/releases/latest) |
+| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.zip), source ZIP, and SHA256 checksums |
 
 Open the DMG, drag 增强右键 into Applications, and launch it from there. Enable its Finder extension as described below.
 
@@ -32,13 +31,13 @@ The app is ad-hoc signed and has not been notarized by Apple. If macOS blocks th
 
 ## Screenshots
 
-### General settings · v0.5.1 candidate
+### General settings · v0.5.1
 
 Actual installed-app screenshots, not design mockups. General fits the default window with a fixed bottom check bar. Permission colors reflect the captured machine: green means ready, orange needs attention, gray is unknown. Ad hoc updates may require reauthorization.
 
 <img src="docs/images/general-v051.png" width="1000" alt="v0.5.1 General settings with preferences, updates, cloud triggers and permissions">
 
-### Templates and toolbox · v0.5.1 candidate
+### Templates and toolbox · v0.5.1
 
 <img src="docs/images/templates-v051.png" width="1000" alt="Built-in file templates and custom template controls">
 
