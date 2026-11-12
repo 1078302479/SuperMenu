@@ -158,6 +158,11 @@ struct BackgroundHandoffSmoke {
         try await ImageToolsController().convert([source], format: .jpg, settings: settings)
         guard FileManager.default.fileExists(atPath: fixture.appendingPathComponent("silent-conversion 2.jpg").path)
         else { throw SmokeError.unexpectedResult }
+        if ProcessInfo.processInfo.environment["SUPERMENU_TEST_LIVE_UPDATE"] == "1" {
+            let release = try await UpdateChecker.fetchLatestRelease()
+            guard release.page != nil else { throw SmokeError.unexpectedResult }
+            print("PASS: live unauthenticated update check: \(release.tag_name)")
+        }
         if let path = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_ARCHIVE"],
            let version = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_VERSION"] {
             let root = fixture.appendingPathComponent("update-test", isDirectory: true)
@@ -180,6 +185,12 @@ struct BackgroundHandoffSmoke {
         try verifyLocalization()
         try verifyTemplates(in: fixture)
         try verifyUpdatePackage(in: fixture)
+        guard UpdateChecker.releaseFromPage(URL(string: "https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0"))?.tag_name == "v0.5.0",
+              UpdateChecker.releaseFromPage(URL(string: "https://github.com/other/repo/releases/tag/v0.5.0")) == nil,
+              UpdateChecker.releaseFromPage(URL(string: "https://github.com/1078302479/SuperMenu/releases/latest")) == nil,
+              UpdateChecker.releaseFromPage(URL(string: "https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0-beta")) == nil
+        else { throw SmokeError.unexpectedResult }
+        print("PASS: release-page fallback accepts only official stable version URLs")
         let newer = GitHubRelease(tag_name: "v0.3.10", html_url: "https://github.com/1078302479/SuperMenu/releases/tag/v0.3.10", draft: false, prerelease: false)
         guard newer.isNewer(than: "0.3.9"), !newer.isNewer(than: "0.3.10"),
               GitHubRelease.version("v0.3.4-beta") == nil, newer.page != nil,

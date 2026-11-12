@@ -52,16 +52,7 @@ final class UpdateChecker: ObservableObject {
         Task {
             defer { checking = false }
             do {
-                var request = URLRequest(url: URL(string: "https://api.github.com/repos/1078302479/SuperMenu/releases/latest")!)
-                request.timeoutInterval = 20
-                request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-                request.setValue("EnhancedRightClick", forHTTPHeaderField: "User-Agent")
-                request.cachePolicy = .reloadIgnoringLocalCacheData
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let response = response as? HTTPURLResponse, response.statusCode == 200, data.count < 1_000_000 else {
-                    throw ToolboxError.message("更新服务暂时不可用，请稍后重试。")
-                }
-                let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+                let release = try await Self.fetchLatestRelease()
                 guard let page = release.page, GitHubRelease.version(release.tag_name) != nil else {
                     throw ToolboxError.message("更新信息格式不正确。")
                 }
@@ -93,6 +84,40 @@ final class UpdateChecker: ObservableObject {
             }
         }
     }
+    /// The public release page remains usable when shared-IP API quotas are exhausted.
+    static func releaseFromPage(_ url: URL?) -> GitHubRelease? {
+        guard let url, url.scheme == "https", url.host == "github.com",
+              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil else { return nil }
+        let prefix = "/1078302479/SuperMenu/releases/tag/"
+        guard url.path.hasPrefix(prefix) else { return nil }
+        let tag = String(url.path.dropFirst(prefix.count))
+        guard GitHubRelease.version(tag) != nil else { return nil }
+        return GitHubRelease(tag_name: tag, html_url: url.absoluteString, draft: false, prerelease: false)
+    }
+
+    static func fetchLatestRelease() async throws -> GitHubRelease {
+        var request = URLRequest(url: URL(string: "https://api.github.com/repos/1078302479/SuperMenu/releases/latest")!)
+        request.timeoutInterval = 15
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("EnhancedRightClick", forHTTPHeaderField: "User-Agent")
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode == 200, data.count < 1_000_000 {
+                let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+                if release.page != nil, GitHubRelease.version(release.tag_name) != nil { return release }
+            }
+        } catch { /* Try the official website before reporting a network failure. */ }
+        request.url = URL(string: "https://github.com/1078302479/SuperMenu/releases/latest")!
+        request.setValue("text/html", forHTTPHeaderField: "Accept")
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+              let release = releaseFromPage(http.url) else {
+            throw ToolboxError.message("更新检查暂时不可用，请前往 GitHub 发布页查看。")
+        }
+        return release
+    }
+
     static var architecture: String {
         #if arch(arm64)
         return "arm64"
@@ -103,6 +128,10 @@ final class UpdateChecker: ObservableObject {
 
     func downloadAvailableUpdate() {
         guard !downloading, preparedUpdate == nil, let release = availableRelease else { return }
+        if (try? UpdatePackage(release: release, architecture: Self.architecture)) == nil {
+            if let page = release.page { NSWorkspace.shared.open(page) }
+            return
+        }
         downloading = true
         downloadProgress = 0
         status = "正在下载安装包…"

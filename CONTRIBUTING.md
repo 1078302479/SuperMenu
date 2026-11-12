@@ -51,3 +51,12 @@ Releases require maintainer approval. Verify the actual packaged app and extensi
 本项目原创代码和资源采用 [Apache License 2.0](LICENSE)。除非明确另作声明，有意提交并纳入本项目的贡献按同一协议授权，遵循协议第 5 条。第三方资源继续遵循各自许可，不因提交到本仓库而改变授权。
 
 Unless explicitly stated otherwise, contributions intentionally submitted for inclusion in this project are licensed under Apache License 2.0, as described in section 5. Ensure you have the right to submit your contribution and preserve all applicable third-party licenses and attribution.
+
+### 发布后的最终验证
+
+每次 GitHub Release 发布后，必须重新从远程下载正式附件，不能使用本地构建包代替：
+
+1. 下载发布 ZIP 与 SHA256SUMS.txt，核对哈希、版本、签名、模板及图标完整性。
+2. 保留可回退备份，用下载的应用完整覆盖本地应用，核对安装内容与远程包一致，并确认用户配置和模板未改变。
+3. 对远程 ZIP 执行更新包验证和后台回归；具备桌面操作能力时补做启动、权限状态及实际右键菜单验证。
+4. 记录验证结果；无法进行的实机项目须明确标为未验，不能以后台测试替代。
