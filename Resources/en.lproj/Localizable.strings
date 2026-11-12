@@ -316,3 +316,7 @@
 "1. 在系统设置中启用增强右键的 Finder 扩展。\n2. 在「通用设置 → 使用范围」中确认包含当前目录。\n3. 在「新建文件」中启用至少一个模板，在访达目录空白处重新打开右键菜单。\n4. 扩展已启用但菜单仍未出现时，可退出并重新打开增强右键。" = "1. Enable the Enhanced Right Click Finder extension in System Settings.\n2. Check that General > Disk Scope includes the current folder.\n3. Enable at least one template in New File, then reopen the context menu in empty space.\n4. If the extension is enabled but the menu is missing, quit and reopen the app.";
 
 "更新检查暂时不可用，请前往 GitHub 发布页查看。" = "Update checking is temporarily unavailable. Please visit the GitHub release page.";
+
+"检查完成" = "Checked";
+
+"无法确认权限状态，请点击立即检查" = "Unable to determine permission status. Click Check now.";

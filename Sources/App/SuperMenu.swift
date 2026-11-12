@@ -14,6 +14,7 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var protectedDirectoryPermission = ProtectedDirectoryPermission.unknown
     @Published private(set) var permissionsCheckedAt: Date?
     @Published private(set) var checkingPermissions = false
+    @Published private(set) var permissionProbeAvailable = false
     @Published private(set) var accessibilityEnabled = false
     @Published private(set) var finderAutomationEnabled = false
     @Published var showsAuthorizationHelp = false
@@ -60,10 +61,16 @@ final class SettingsModel: ObservableObject {
         save(next)
     }
 
-    private func refreshCloudTriggers() {
-        accessibilityEnabled = AXIsProcessTrusted()
-        finderAutomationEnabled = FinderAutomation.isAuthorized
-        cloudMenus.configure(settings)
+    private func refreshCloudTriggers(snapshot: PermissionSnapshot? = nil) {
+        if let snapshot {
+            accessibilityEnabled = snapshot.accessibility
+            finderAutomationEnabled = snapshot.automation
+        }
+        if !accessibilityEnabled || !finderAutomationEnabled {
+            cloudMenus.stop()
+        } else if snapshot == nil || !cloudMenus.available {
+            cloudMenus.configure(settings)
+        }
         cloudTriggerAvailable = cloudMenus.available
     }
 
@@ -105,16 +112,22 @@ final class SettingsModel: ObservableObject {
 
     func refreshPermissions() async {
         guard !checkingPermissions else { return }
+        if let last = permissionsCheckedAt, Date().timeIntervalSince(last) < 3 { return }
         checkingPermissions = true
         defer { checkingPermissions = false }
-        async let protected = Task.detached(priority: .utility) { ProtectedDirectoryPermission.check() }.value
+        async let snapshot = PermissionSnapshot.fresh()
         let enabled = await FinderExtensionPermission.isEnabled()
         let previous = extensionEnabled
         extensionPermission = enabled
         if let enabled { extensionEnabled = enabled }
-        protectedDirectoryPermission = await protected
+        let latest = await snapshot
+        protectedDirectoryPermission = latest.map {
+            $0.protectedAccess == "accessible" ? .accessible : $0.protectedAccess == "denied" ? .denied : .unknown
+        } ?? .unknown
         permissionsCheckedAt = Date()
-        refreshCloudTriggers()
+        permissionProbeAvailable = latest != nil
+        if let latest { refreshCloudTriggers(snapshot: latest) }
+        else { cloudMenus.stop(); cloudTriggerAvailable = false }
         if previous != extensionEnabled {
             DistributedNotificationCenter.default().post(name: SharedStore.settingsChanged, object: nil)
         }
@@ -1205,6 +1218,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct SuperMenuApp {
     @MainActor static func main() {
+        if CommandLine.arguments.contains("--permission-status-probe") {
+            if let data = try? JSONEncoder().encode(PermissionSnapshot.capture()) {
+                FileHandle.standardOutput.write(data)
+            }
+            return
+        }
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate

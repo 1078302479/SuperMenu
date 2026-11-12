@@ -47,7 +47,15 @@ struct SystemPreferencesView: View {
             HStack(spacing: 14) { permissionTiles }
             Divider()
             HStack {
-                Text("每 30 秒检查，返回应用时刷新").font(.caption2).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("每 30 秒检查，返回应用时刷新")
+                    if let checked = model.permissionsCheckedAt {
+                        HStack(spacing: 4) {
+                            Text("检查完成")
+                            Text(checked, style: .time)
+                        }
+                    }
+                }.font(.caption2).foregroundStyle(.secondary)
                 Spacer()
                 Button("更新后菜单不出现？") { model.showsAuthorizationHelp.toggle() }
                     .font(.caption).foregroundStyle(cloudEnabled && !model.accessibilityEnabled ? .orange : .blue)
@@ -76,8 +84,8 @@ struct SystemPreferencesView: View {
 
     @ViewBuilder private var permissionTiles: some View {
         permissionTile("访达扩展", status: extensionStatus, color: extensionColor, action: model.openFinderExtensionSettings)
-        permissionTile("辅助功能", status: model.accessibilityEnabled ? "已授权" : "需要授权", color: model.accessibilityEnabled ? .green : .orange, action: model.openAccessibilitySettings)
-        permissionTile("访达访问", status: model.finderAutomationEnabled ? "已授权" : "需要授权", color: model.finderAutomationEnabled ? .green : .orange, action: model.finderAutomationEnabled ? model.openFinderAutomationSettings : model.requestFinderAutomation)
+        permissionTile("辅助功能", status: !model.permissionProbeAvailable ? "无法确认" : model.accessibilityEnabled ? "已授权" : "需要授权", color: !model.permissionProbeAvailable ? .secondary : model.accessibilityEnabled ? .green : .orange, action: model.openAccessibilitySettings)
+        permissionTile("访达访问", status: !model.permissionProbeAvailable ? "无法确认" : model.finderAutomationEnabled ? "已授权" : "需要授权", color: !model.permissionProbeAvailable ? .secondary : model.finderAutomationEnabled ? .green : .orange, action: model.finderAutomationEnabled ? model.openFinderAutomationSettings : model.requestFinderAutomation)
         permissionTile("受保护目录", status: protectedStatus, color: protectedColor, action: model.openFullDiskAccessSettings)
     }
 
@@ -149,6 +157,7 @@ struct SystemPreferencesView: View {
         model.settings.cloudMenu?.modifierRightClick == true || model.settings.cloudMenu?.middleClick == true
     }
     private var cloudStatus: String {
+        if !model.permissionProbeAvailable { return "无法确认权限状态，请点击立即检查" }
         if !model.accessibilityEnabled { return "需要辅助功能授权，请在下方权限区设置" }
         if !model.finderAutomationEnabled { return "需要访达访问授权，请在下方权限区设置" }
         return model.cloudTriggerAvailable ? "云盘菜单已就绪" : "鼠标监听未启动，请重新打开应用"

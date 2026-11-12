@@ -39,8 +39,8 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenu</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.5.0</string>
-<key>CFBundleVersion</key><string>44</string>
+<key>CFBundleShortVersionString</key><string>0.5.1</string>
+<key>CFBundleVersion</key><string>45</string>
 <key>CFBundleDevelopmentRegion</key><string>zh-Hans</string>
 <key>CFBundleLocalizations</key><array><string>zh-Hans</string><string>en</string></array>
 <key>NSAppleEventsUsageDescription</key><string>在所选目录中打开终端，以及读取访达云盘窗口目录和选中文件以显示右键菜单。</string>
@@ -83,8 +83,8 @@ cat > "$extension/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenuFinder</string>
 <key>CFBundlePackageType</key><string>XPC!</string>
-<key>CFBundleShortVersionString</key><string>0.5.0</string>
-<key>CFBundleVersion</key><string>44</string>
+<key>CFBundleShortVersionString</key><string>0.5.1</string>
+<key>CFBundleVersion</key><string>45</string>
 <key>LSMinimumSystemVersion</key><string>$deployment</string>
 <key>NSExtension</key><dict>
 <key>NSExtensionAttributes</key><dict/>

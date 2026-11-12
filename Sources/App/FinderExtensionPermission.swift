@@ -13,23 +13,11 @@ enum FinderExtensionPermission {
     }
 
     @MainActor static func isEnabled() async -> Bool? {
-        if FIFinderSyncController.isExtensionEnabled { return true }
         let registered: Bool? = await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/pluginkit")
-            process.arguments = ["-m", "-A", "-D", "-i", identifier]
-            let output = Pipe()
-            process.standardOutput = output
-            process.standardError = FileHandle.nullDevice
-            do {
-                try process.run()
-                let data = output.fileHandleForReading.readDataToEndOfFile()
-                process.waitUntilExit()
-                guard process.terminationStatus == 0 else { return nil }
-                return enabledRegistration(in: String(decoding: data, as: UTF8.self))
-            } catch { return nil }
+            guard let data = PermissionProcess.output(executable: URL(fileURLWithPath: "/usr/bin/pluginkit"),
+                                                      arguments: ["-m", "-i", identifier]) else { return nil }
+            return enabledRegistration(in: String(decoding: data, as: UTF8.self))
         }.value
-        if FIFinderSyncController.isExtensionEnabled { return true }
         return registered
     }
 }

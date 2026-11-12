@@ -41,6 +41,12 @@ final class Receiver: NSObject, NSApplicationDelegate {
 @main
 struct BackgroundHandoffSmoke {
     @MainActor static func main() async {
+        if CommandLine.arguments.contains("--permission-status-probe") {
+            if let data = try? JSONEncoder().encode(PermissionSnapshot.capture()) {
+                FileHandle.standardOutput.write(data)
+            }
+            return
+        }
         if CommandLine.arguments.last == "--direct-access" {
             do { try await verifyDirectAccess() }
             catch {
@@ -163,6 +169,15 @@ struct BackgroundHandoffSmoke {
             guard release.page != nil else { throw SmokeError.unexpectedResult }
             print("PASS: live unauthenticated update check: \(release.tag_name)")
         }
+        guard let snapshot = await PermissionSnapshot.fresh(),
+              ["accessible", "denied", "unknown"].contains(snapshot.protectedAccess) else { throw SmokeError.unexpectedResult }
+        print("PASS: fresh same-executable permission probe completes without opening an app window")
+        let timeoutStart = Date()
+        let timeoutResult = await Task.detached {
+            PermissionProcess.output(executable: URL(fileURLWithPath: "/bin/sleep"), arguments: ["10"], timeout: 0.15)
+        }.value
+        guard timeoutResult == nil, Date().timeIntervalSince(timeoutStart) < 2 else { throw SmokeError.unexpectedResult }
+        print("PASS: stalled permission command is terminated within its deadline")
         if let path = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_ARCHIVE"],
            let version = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_VERSION"] {
             let root = fixture.appendingPathComponent("update-test", isDirectory: true)
