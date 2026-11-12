@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import FinderSync
 import SwiftUI
 import ServiceManagement
@@ -13,6 +14,11 @@ final class SettingsModel: ObservableObject {
     @Published private(set) var protectedDirectoryPermission = ProtectedDirectoryPermission.unknown
     @Published private(set) var permissionsCheckedAt: Date?
     @Published private(set) var checkingPermissions = false
+    @Published private(set) var accessibilityEnabled = false
+    @Published private(set) var finderAutomationEnabled = false
+    @Published var showsAuthorizationHelp = false
+    @Published private(set) var cloudTriggerAvailable = false
+    let cloudMenus = CloudMenuController()
     @Published var message = ""
     @Published var showsMessage = false
     @Published var page: SettingsPage? = .overview
@@ -32,7 +38,54 @@ final class SettingsModel: ObservableObject {
     private var isNamingDocument = false
     private var isPickingCreationFolder = false
 
-    init() { refresh() }
+    init() {
+        refresh()
+        cloudMenus.onRequest = { [weak self] request in
+            Task { @MainActor in
+                do { try await self?.perform(request) }
+                catch { self?.report(error) }
+            }
+        }
+    }
+
+    func setCloudMenu(_ change: (inout CloudMenuSettings) -> Void) {
+        var preferences = settings.cloudMenu ?? CloudMenuSettings()
+        change(&preferences)
+        if (preferences.modifierRightClick || preferences.middleClick) && !AXIsProcessTrusted() {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
+        var next = settings
+        next.cloudMenu = preferences
+        save(next)
+    }
+
+    private func refreshCloudTriggers() {
+        accessibilityEnabled = AXIsProcessTrusted()
+        finderAutomationEnabled = FinderAutomation.isAuthorized
+        cloudMenus.configure(settings)
+        cloudTriggerAvailable = cloudMenus.available
+    }
+
+    func requestFinderAutomation() {
+        finderAutomationEnabled = FinderAutomation.requestPermission()
+        if !finderAutomationEnabled {
+            message = "未获得访达访问权限，请在系统设置的「隐私与安全 → 自动化」中允许增强右键控制访达。"
+            showsMessage = true
+        }
+    }
+
+    func openFinderAutomationSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!)
+    }
+
+    func openAccessibilitySettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+    }
+
+    func revealInstalledApplication() {
+        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+    }
 
     func refresh() {
         do {
@@ -61,6 +114,7 @@ final class SettingsModel: ObservableObject {
         if let enabled { extensionEnabled = enabled }
         protectedDirectoryPermission = await protected
         permissionsCheckedAt = Date()
+        refreshCloudTriggers()
         if previous != extensionEnabled {
             DistributedNotificationCenter.default().post(name: SharedStore.settingsChanged, object: nil)
         }
@@ -163,7 +217,7 @@ final class SettingsModel: ObservableObject {
             alert.alertStyle = .critical
             alert.addButton(withTitle: "关闭确认").hasDestructiveAction = true
             alert.addButton(withTitle: "取消")
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         }
         var next = settings
         next.confirmsPermanentDelete = confirms
@@ -333,7 +387,7 @@ final class SettingsModel: ObservableObject {
             alert.informativeText = "将更新菜单及功能偏好，目录授权、本机应用和模板库将继续使用当前配置。"
             alert.addButton(withTitle: "导入")
             alert.addButton(withTitle: "取消")
-            guard alert.runModal() == .alertFirstButtonReturn else { return }
+            guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
             save(try preference.merging(into: SharedStore.load()))
         } catch { report(error, context: "无法导入配置") }
     }
@@ -358,7 +412,7 @@ final class SettingsModel: ObservableObject {
         alert.addButton(withTitle: "保存")
         alert.addButton(withTitle: "取消")
         alert.window.initialFirstResponder = field
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         updateMenuRule(action) { $0.name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines) }
     }
 
@@ -382,7 +436,7 @@ final class SettingsModel: ObservableObject {
         alert.informativeText = "恢复工具箱名称、顺序、开关和菜单合并设置，并移除自定义进入 App。不会删除应用或文件。"
         alert.addButton(withTitle: "重置")
         alert.addButton(withTitle: "取消")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         setSystemPreference {
             $0.enabled.formUnion([.copyPath, .openTerminal])
             $0.toolboxEnabled = nil
@@ -411,7 +465,7 @@ final class SettingsModel: ObservableObject {
         alert.messageText = "权限设置教学"
         alert.informativeText = "1. 在系统设置中启用增强右键的 Finder 扩展。\n2. 使用范围在通用设置中选择，普通目录无需逐个授权。\n3. 若受保护的位置无法访问，在「隐私与安全性 → 完全磁盘访问权限」中添加并启用当前的增强右键.app。\n4. 权限变更后退出并重新打开增强右键。"
         alert.addButton(withTitle: "好")
-        alert.runModal()
+        alert.runLocalizedModal()
     }
 
     func showPermissionGuide() {
@@ -421,7 +475,7 @@ final class SettingsModel: ObservableObject {
         alert.addButton(withTitle: "完全磁盘访问权限")
         alert.addButton(withTitle: "Finder 扩展")
         alert.addButton(withTitle: "取消")
-        switch alert.runModal() {
+        switch alert.runLocalizedModal() {
         case .alertFirstButtonReturn:
             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
         case .alertSecondButtonReturn: FIFinderSyncController.showExtensionManagementInterface()
@@ -533,7 +587,7 @@ final class SettingsModel: ObservableObject {
         alert.informativeText = "恢复下载、图片、音乐、影片、文稿五个默认目录及其名称和顺序。仅重置此页设置，不会删除文件。"
         alert.addButton(withTitle: "重置")
         alert.addButton(withTitle: "取消")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         setSystemPreference {
             var destinations = $0.copyDestinations ?? SavedFolders()
             destinations.resetTransferDestinations()
@@ -582,7 +636,7 @@ final class SettingsModel: ObservableObject {
         alert.informativeText = "清空收藏并恢复此页开关。"
         alert.addButton(withTitle: "重置")
         alert.addButton(withTitle: "取消")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         setSystemPreference {
             var favorites = $0.favorites ?? SavedFolders()
             favorites.removeAll()
@@ -704,7 +758,7 @@ final class SettingsModel: ObservableObject {
         alert.informativeText = "恢复内置和导入模板的默认名称、顺序、启用状态及菜单设置。已导入的模板文件会保留。"
         alert.addButton(withTitle: "重置")
         alert.addButton(withTitle: "取消").keyEquivalent = "\u{1b}"
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return }
         setSystemPreference { $0.resetTemplateSettings() }
     }
 
@@ -713,7 +767,7 @@ final class SettingsModel: ObservableObject {
         alert.messageText = "新建文件帮助"
         alert.informativeText = "在访达目录空白处右键，打开「新建文件」，选择模板即可创建。\n\n在设置中勾选「主菜单」，可以把该模板直接放到右键菜单。双击名称可修改菜单文字，拖动行可调整顺序。\n\n点击「添加模版文件」可导入自己的模板。"
         alert.addButton(withTitle: "好")
-        alert.runModal()
+        alert.runLocalizedModal()
     }
 
     func showTemplateTroubleshooting() {
@@ -722,7 +776,7 @@ final class SettingsModel: ObservableObject {
         alert.informativeText = "1. 在系统设置中启用增强右键的 Finder 扩展。\n2. 在「通用设置 → 使用范围」中确认包含当前目录。\n3. 在「新建文件」中启用至少一个模板，在访达目录空白处重新打开右键菜单。\n4. 扩展已启用但菜单仍未出现时，可退出并重新打开增强右键。"
         alert.addButton(withTitle: "打开 Finder 扩展设置")
         alert.addButton(withTitle: "关闭")
-        if alert.runModal() == .alertFirstButtonReturn {
+        if alert.runLocalizedModal() == .alertFirstButtonReturn {
             FIFinderSyncController.showExtensionManagementInterface()
         }
     }
@@ -976,7 +1030,7 @@ final class SettingsModel: ObservableObject {
             alert.addButton(withTitle: "创建")
             alert.addButton(withTitle: "取消").keyEquivalent = "\u{1b}"
             alert.window.initialFirstResponder = field
-            guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+            guard alert.runLocalizedModal() == .alertFirstButtonReturn else { return nil }
             input = field.stringValue
             do { return try NamedDocument(input) }
             catch { validation = error.localizedDescription }
@@ -1010,6 +1064,7 @@ final class SettingsModel: ObservableObject {
             try SharedStore.save(next)
             settings = next
             storageAvailable = true
+            refreshCloudTriggers()
         } catch { report(error, context: "无法写入共享配置") }
     }
 }
@@ -1072,10 +1127,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.setAccessibilityLabel("增强右键")
         }
         let menu = NSMenu()
-        let settingsItem = NSMenuItem(title: "偏好设置…", action: #selector(openSettingsFromStatus), keyEquivalent: "")
+        let settingsItem = NSMenuItem(title: InterfaceText.current("偏好设置…"), action: #selector(openSettingsFromStatus), keyEquivalent: "")
         settingsItem.target = self
         menu.addItem(settingsItem)
-        let quit = NSMenuItem(title: "退出", action: #selector(quitFromStatus), keyEquivalent: "")
+        let quit = NSMenuItem(title: InterfaceText.current("退出"), action: #selector(quitFromStatus), keyEquivalent: "")
         quit.target = self
         menu.addItem(quit)
         statusItem?.menu = menu
@@ -1139,7 +1194,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: "打开系统设置")
             alert.addButton(withTitle: "稍后")
             NSApp.activate(ignoringOtherApps: true)
-            if alert.runModal() == .alertFirstButtonReturn {
+            if alert.runLocalizedModal() == .alertFirstButtonReturn {
                 FIFinderSyncController.showExtensionManagementInterface()
             }
         }

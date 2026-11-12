@@ -77,6 +77,24 @@ struct BackgroundHandoffSmoke {
         let fixture = fm.temporaryDirectory.appendingPathComponent("SuperMenu-direct-" + UUID().uuidString)
         try fm.createDirectory(at: fixture, withIntermediateDirectories: false)
         defer { try? fm.removeItem(at: fixture) }
+        if let metadata = ProcessInfo.processInfo.environment["SUPERMENU_TEST_LIVE_RELEASE"] {
+            let release = try JSONDecoder().decode(GitHubRelease.self, from: Data(contentsOf: URL(fileURLWithPath: metadata)))
+            let package = try UpdatePackage(release: release, architecture: UpdateChecker.architecture)
+            let cancelled = Task {
+                try Task.checkCancellation()
+                return try await UpdateDownload().download(package.archive, to: fixture.appendingPathComponent("cancelled.zip")) { _ in }
+            }
+            cancelled.cancel()
+            do { _ = try await cancelled.value; throw SmokeError.unexpectedResult }
+            catch is CancellationError {} catch { throw error }
+            let archive = try await UpdateDownload().download(package.archive, to: fixture.appendingPathComponent("live.zip")) { _ in }
+            let (checksums, response) = try await URLSession.shared.data(from: package.checksums.url!)
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  try UpdatePackage.hash(of: archive) == package.expectedHash(in: checksums) else { throw SmokeError.unexpectedResult }
+            let prepared = try UpdateInstaller.prepare(archive: archive, version: String(release.tag_name.dropFirst()), directory: fixture)
+            guard fm.fileExists(atPath: prepared.app.path) else { throw SmokeError.unexpectedResult }
+            print("PASS: live GitHub release download, cancellation, SHA256 manifest and signed package extraction")
+        }
         var settings = Settings()
         settings.showsCut = true
         try SharedStore.save(settings)
@@ -140,6 +158,18 @@ struct BackgroundHandoffSmoke {
         try await ImageToolsController().convert([source], format: .jpg, settings: settings)
         guard FileManager.default.fileExists(atPath: fixture.appendingPathComponent("silent-conversion 2.jpg").path)
         else { throw SmokeError.unexpectedResult }
+        if let path = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_ARCHIVE"],
+           let version = ProcessInfo.processInfo.environment["SUPERMENU_TEST_UPDATE_VERSION"] {
+            let root = fixture.appendingPathComponent("update-test", isDirectory: true)
+            try fm.createDirectory(at: root, withIntermediateDirectories: false)
+            let archive = URL(fileURLWithPath: path)
+            let prepared = try UpdateInstaller.prepare(archive: archive, version: version, directory: root)
+            guard fm.fileExists(atPath: prepared.app.appendingPathComponent("Contents/MacOS/SuperMenu").path)
+            else { throw SmokeError.unexpectedResult }
+            do { try UpdateInstaller.validateApp(prepared.app, expectedVersion: "99.99.99"); throw SmokeError.unexpectedResult }
+            catch is SmokeError { throw SmokeError.unexpectedResult } catch {}
+            print("PASS: actual distribution ZIP preflight, extraction, signature, identity, version, template and icon validation; wrong version rejected")
+        }
         print("PASS: silent conversion exports beside the source, preserves source bytes and numbers collisions")
         print("PASS: direct file creation, scoped operations and cut without directory grants; disk scope and symlink filtering")
     }
@@ -147,7 +177,9 @@ struct BackgroundHandoffSmoke {
     @MainActor private static func send(to app: URL) throws {
         let fixture = try SharedStore.directory().appendingPathComponent("fixture", isDirectory: true)
         try FileManager.default.createDirectory(at: fixture, withIntermediateDirectories: false)
+        try verifyLocalization()
         try verifyTemplates(in: fixture)
+        try verifyUpdatePackage(in: fixture)
         let newer = GitHubRelease(tag_name: "v0.3.10", html_url: "https://github.com/1078302479/SuperMenu/releases/tag/v0.3.10", draft: false, prerelease: false)
         guard newer.isNewer(than: "0.3.9"), !newer.isNewer(than: "0.3.10"),
               GitHubRelease.version("v0.3.4-beta") == nil, newer.page != nil,
@@ -184,6 +216,9 @@ struct BackgroundHandoffSmoke {
         transferMenu.addItem(transferItem)
         MenuIcons.prepareForFinder(transferMenu)
         for item in [transferItem, child] {
+            if #available(macOS 27.0, *) {
+                guard item.preferredImageVisibility == .visible else { throw SmokeError.unexpectedResult }
+            }
             guard let icon = item.image, icon.representations.count == 1,
                   icon.representations[0].pixelsWide == 32, icon.representations[0].pixelsHigh == 32,
                   icon.size == NSSize(width: 16, height: 16),
@@ -255,6 +290,83 @@ struct BackgroundHandoffSmoke {
             RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
         throw SmokeError.timedOut
+    }
+
+    private static func verifyUpdatePackage(in fixture: URL) throws {
+        guard FinderAutomation.matches(CGRect(x: 20, y: 40, width: 800, height: 600), CGRect(x: 21, y: 41, width: 800, height: 600)),
+              !FinderAutomation.matches(CGRect(x: 20, y: 40, width: 800, height: 600), CGRect(x: 500, y: 40, width: 800, height: 600)) else { throw SmokeError.unexpectedResult }
+        guard FinderAccessibility.fileURL("/Users/sample/中文目录" as CFString)?.path == "/Users/sample/中文目录",
+              FinderAccessibility.fileURL("file:///Users/sample/Folder" as CFString)?.path == "/Users/sample/Folder",
+              FinderAccessibility.fileURL("https://example.com/" as CFString) == nil,
+              FinderAccessibility.fileURL("relative/folder" as CFString) == nil else { throw SmokeError.unexpectedResult }
+        let base = "https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/"
+        let zip = ReleaseAsset(name: "SuperMenu-v0.5.0-arm64.zip", browser_download_url: base + "SuperMenu-v0.5.0-arm64.zip", size: 123, digest: nil)
+        let sums = ReleaseAsset(name: "SHA256SUMS.txt", browser_download_url: base + "SHA256SUMS.txt", size: 100, digest: nil)
+        let release = GitHubRelease(tag_name: "v0.5.0", html_url: "https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0", draft: false, prerelease: false, assets: [zip, sums])
+        let package = try UpdatePackage(release: release, architecture: "arm64")
+        let payload = fixture.appendingPathComponent("hash-fixture")
+        try Data("abc".utf8).write(to: payload)
+        let hash = try UpdatePackage.hash(of: payload)
+        guard hash == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+              try package.expectedHash(in: Data((hash + "  " + zip.name + "\n").utf8)) == hash else { throw SmokeError.unexpectedResult }
+        do {
+            _ = try UpdatePackage(release: release, architecture: "x86_64")
+            throw SmokeError.unexpectedResult
+        } catch is SmokeError { throw SmokeError.unexpectedResult } catch {}
+        for text in ["", "invalid  " + zip.name, hash + "  other.zip", hash + "  " + zip.name + "\n" + hash + "  " + zip.name] {
+            do { _ = try package.expectedHash(in: Data(text.utf8)); throw SmokeError.unexpectedResult }
+            catch is SmokeError { throw SmokeError.unexpectedResult } catch {}
+        }
+        guard ReleaseAsset(name: "bad", browser_download_url: "https://example.com/archive.zip", size: 1, digest: nil).url == nil,
+              ReleaseAsset(name: "bad", browser_download_url: base + "file.zip?token=value", size: 1, digest: nil).url == nil
+        else { throw SmokeError.unexpectedResult }
+        let invalid = fixture.appendingPathComponent("invalid-update.zip")
+        try Data("not a zip".utf8).write(to: invalid)
+        do { try UpdateInstaller.validateArchive(invalid); throw SmokeError.unexpectedResult }
+        catch is SmokeError { throw SmokeError.unexpectedResult } catch {}
+        let home = URL(fileURLWithPath: "/Users/sample", isDirectory: true)
+        guard CloudMenuSettings.isCloudFolder(home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs/Documents"), home: home),
+              CloudMenuSettings.isCloudFolder(home.appendingPathComponent("Library/CloudStorage/OneDrive-Personal/Folder"), home: home),
+              !CloudMenuSettings.isCloudFolder(home.appendingPathComponent("Documents"), home: home),
+              !CloudMenuSettings.isCloudFolder(home.appendingPathComponent("Library/CloudStorage/Dropbox/Folder"), home: home),
+              !CloudMenuSettings.isCloudFolder(home.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs-other"), home: home)
+        else { throw SmokeError.unexpectedResult }
+        var customSettings = Settings()
+        customSettings.cloudMenu = CloudMenuSettings(modifierRightClick: true, modifier: .option, middleClick: true)
+        let decoded = try JSONDecoder().decode(Settings.self, from: JSONEncoder().encode(customSettings))
+        guard decoded.cloudMenu?.modifier == .option, decoded.cloudMenu?.middleClick == true else { throw SmokeError.unexpectedResult }
+        let background = FinderMenuContext(folder: fixture, selection: [])
+        var received: FinderRequest?
+        let builder = FinderMenuController(context: { background }, onRequest: { received = $0 })
+        guard let menu = builder.menu(for: .contextualMenuForContainer, settings: customSettings),
+              let copy = menu.items.first(where: { $0.identifier?.rawValue == FinderAction.copyPath.rawValue }),
+              let action = copy.action, let target = copy.target as? NSObject else { throw SmokeError.unexpectedResult }
+        _ = target.perform(action, with: copy)
+        guard received?.paths == [fixture.path], received?.action == .copyPath else { throw SmokeError.unexpectedResult }
+        // Two independent cloud popups retain their own captured directory and
+        // selection even when another window is queried or a second menu opens.
+        let secondFolder = fixture.appendingPathComponent("second-window", isDirectory: true)
+        let files = ["one.txt", "two.txt"].map { secondFolder.appendingPathComponent($0) }
+        let selectedContext = FinderMenuContext(folder: secondFolder, selection: files)
+        let secondBuilder = FinderMenuController(context: { selectedContext }, onRequest: { received = $0 })
+        guard let secondMenu = secondBuilder.menu(for: .contextualMenuForItems, settings: customSettings),
+              let secondCopy = secondMenu.items.first(where: { $0.identifier?.rawValue == FinderAction.copyPath.rawValue }),
+              let secondAction = secondCopy.action, let secondTarget = secondCopy.target as? NSObject else { throw SmokeError.unexpectedResult }
+        _ = secondTarget.perform(secondAction, with: secondCopy)
+        guard received?.paths == files.map(\.path) else { throw SmokeError.unexpectedResult }
+        _ = target.perform(action, with: copy)
+        guard received?.paths == [fixture.path] else { throw SmokeError.unexpectedResult }
+        print("PASS: cloud path boundaries, trigger settings roundtrip, shared background menu and action context")
+        print("PASS: update architecture selection, official URLs, known SHA256 vector, missing/duplicate hashes and invalid archive rejection")
+    }
+
+    private static func verifyLocalization() throws {
+        guard InterfaceText.english("发现新版本 0.5.1") == "New version available: 0.5.1",
+              InterfaceText.english("当前版本 0.5.0，最新版本 0.5.1。") == "Installed version: 0.5.0. Latest version: 0.5.1.",
+              InterfaceText.english("检查失败，文件/中文😀\n网络错误") == "Update check failed: 文件/中文😀\n网络错误",
+              InterfaceText.english("我的中文菜单😀") == "我的中文菜单😀"
+        else { throw SmokeError.unexpectedResult }
+        print("PASS: dynamic localization preserves versions, Unicode filenames, multiline details and custom names")
     }
 
     private static func verifyTemplates(in fixture: URL) throws {
@@ -375,7 +487,7 @@ struct BackgroundHandoffSmoke {
             CustomTemplate(id: 1, fileName: "清单.txt", showsInMainMenu: true),
             CustomTemplate(id: 2, fileName: "已隐藏.txt", enabled: false, showsInMainMenu: true),
         ], nextID: 3)
-        let menu = FinderSync.toolbarMenu(settings: settings, target: target)
+        let menu = FinderMenuController.toolbarMenu(settings: settings, target: target)
         let items = menu.items.filter { !$0.isSeparatorItem }
         guard items.map(\.title) == [NamedDocument.title, "RTF", "工作笔记", "清单.txt"],
               items.map(\.tag) == [0, DocumentTemplate.richText.menuTag, DocumentTemplate.text.menuTag, 1],
@@ -386,7 +498,7 @@ struct BackgroundHandoffSmoke {
 
         let restored = try JSONDecoder().decode(Settings.self, from: JSONEncoder().encode(settings))
         let contextMenu = NSMenu()
-        FinderSync.addTemplates(to: contextMenu, settings: restored, target: target)
+        FinderMenuController.addTemplates(to: contextMenu, settings: restored, target: target)
         let directItems = contextMenu.items.filter { $0.submenu == nil }
         guard directItems.map(\.title) == ["工作笔记", "清单.txt"],
               directItems.last?.tag == 1,
@@ -405,12 +517,12 @@ struct BackgroundHandoffSmoke {
 
         settings.namedCreationDisplayName = "自定义测试文档"
         settings.showsTemplateIcons = false
-        let configured = FinderSync.toolbarMenu(settings: settings, target: target)
+        let configured = FinderMenuController.toolbarMenu(settings: settings, target: target)
         guard configured.items.first?.title == "自定义测试文档",
               configured.items.allSatisfy({ $0.image == nil }) else { throw SmokeError.unexpectedResult }
 
         settings.enabled.remove(.newText)
-        let disabled = FinderSync.toolbarMenu(settings: settings, target: target)
+        let disabled = FinderMenuController.toolbarMenu(settings: settings, target: target)
         guard disabled.items.count == 1, disabled.items.first?.action == nil,
               disabled.items.first?.isEnabled == false else { throw SmokeError.unexpectedResult }
 
@@ -910,7 +1022,7 @@ struct BackgroundHandoffSmoke {
             menu.addItem(parent)
             var preferences = Settings()
             preferences.mergedMenuGroups = merged ? [.images] : []
-            FinderSync.customize(menu, settings: preferences, scenes: [.images], count: 1)
+            FinderMenuController.customize(menu, settings: preferences, scenes: [.images], count: 1)
             if merged {
                 guard menu.items.count == 1, menu.items[0].submenu?.items.map(\.title) == ["转为 PNG", "转为 JPG"] else { throw SmokeError.unexpectedResult }
             } else {
@@ -996,7 +1108,7 @@ struct BackgroundHandoffSmoke {
         guard try SharedStore.load().templateTitle(.text) == "双击测试 TXT"
         else { throw ToolboxError.message("Inline rename: Return did not save the edited field (\(field.stringValue))") }
         let menu = NSMenu()
-        FinderSync.addTemplates(to: menu, settings: model.settings, target: NSObject())
+        FinderMenuController.addTemplates(to: menu, settings: model.settings, target: NSObject())
         guard menu.items.contains(where: { $0.title == "双击测试 TXT" || $0.submenu?.item(withTitle: "双击测试 TXT") != nil })
         else { throw ToolboxError.message("Inline rename: the saved title did not reach the Finder menu") }
         model.renameTemplate(.text, to: original == DocumentTemplate.text.title ? "" : original)
@@ -1115,7 +1227,7 @@ struct BackgroundHandoffSmoke {
         }
         var grouped = imported
         grouped.mergedMenuGroups = [.files]
-        FinderSync.customize(menu, settings: grouped, scenes: [.files], count: 1)
+        FinderMenuController.customize(menu, settings: grouped, scenes: [.files], count: 1)
         guard menu.items.count == 1, menu.items.first?.submenu?.items.map(\.title) == ["我的路径", "文件信息"],
               Set(ApplicationCatalog.entries.map(\.menuTag)).count == ApplicationCatalog.entries.count
         else { throw SmokeError.unexpectedResult }

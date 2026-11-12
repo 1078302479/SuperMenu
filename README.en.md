@@ -7,7 +7,7 @@
   <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">Download for macOS</a> · <a href="#screenshots">Screenshots</a> · <a href="#first-time-setup">Setup guide</a> · <a href="#build-from-source">Build from source</a></p>
 </div>
 
-**Latest stable release: [v0.4.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.4.1)**, with all 15 built-in document formats included. See the [changelog (Chinese)](CHANGELOG.md).
+**Latest stable release: [v0.5.0](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0)**, with cloud-folder menu triggers, in-app update downloads, and redesigned General settings. See the [changelog (Chinese)](CHANGELOG.md).
 
 ## About
 
@@ -21,8 +21,8 @@ This free, independent open-source project aims to cover the features of iRightM
 | --- | --- |
 | macOS | 13 or later |
 | Download architecture | Apple silicon (arm64) |
-| Latest release | [v0.4.1](https://github.com/1078302479/SuperMenu/releases/latest) |
-| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.4.1/SuperMenu-v0.4.1-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.4.1/SuperMenu-v0.4.1-arm64.zip), source ZIP, and SHA256 checksums |
+| Latest release | [v0.5.0](https://github.com/1078302479/SuperMenu/releases/latest) |
+| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.0/SuperMenu-v0.5.0-arm64.zip), source ZIP, and SHA256 checksums |
 
 Open the DMG, drag 增强右键 into Applications, and launch it from there. Enable its Finder extension as described below.
 
@@ -86,7 +86,7 @@ The menu bar icon has Preferences and Quit entries. A New File toolbar entry can
 
 ## Updates and troubleshooting
 
-- **Updates:** General Settings offers Check for Updates and an automatic-check toggle. After a successful automatic check, at least 24 hours must pass before another one. Updates link to GitHub downloads; downloading and installation are not automatic.
+- **Updates:** General Settings offers Check for Updates and an automatic-check toggle. After a successful automatic check, at least 24 hours must pass before another one. Updates can be downloaded and verified in the app, with progress and cancellation. Installation requires confirmation; manual GitHub downloads remain available.
 - **Upgrade:** quit the old app, replace it in Applications, launch the new one, and check the extension status. Normal replacement preserves configuration.
 - **Missing menus:** verify extension status, disk scope, and the corresponding enabled actions. If necessary, turn the extension off and on in System Settings and reopen the context menu.
 - **Duplicate menus:** similar extensions can each add their own entries. Keep only the extensions you want enabled.
@@ -96,7 +96,7 @@ Installed-app configuration is stored in `~/Library/Application Support/io.githu
 
 ## Known limitations
 
-Modifier-key, middle-click, and three-finger triggers for cloud folders are not implemented. iShot, FastZip, and DiskMap currently have app-opening entries; deeper task integration remains unfinished. Password-protected archives and some special archive entries are unsupported. Further real-device compatibility testing is needed across Finder, system services, login items, and third-party apps. Download cloud files locally before processing them.
+Modifier-key and middle-click cloud-folder triggers require Accessibility and Finder Automation permissions. Three-finger triggers remain unavailable. OneDrive, multiple windows, login scenarios and the complete update replacement/restart flow require further hands-on validation. Ad hoc signed upgrades may require removing and re-adding Accessibility permission; follow the guide in General settings. iShot, FastZip, and DiskMap currently have app-opening entries; deeper task integration remains unfinished. Password-protected archives and some special archive entries are unsupported. Further real-device compatibility testing is needed across Finder, system services, login items, and third-party apps. Download cloud files locally before processing them.
 
 ## Build from source
 

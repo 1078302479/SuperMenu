@@ -152,7 +152,13 @@ enum MenuIcons {
     /// not resize NSImage's underlying representations.
     static func prepareForFinder(_ menu: NSMenu) {
         for item in menu.items {
-            if let source = item.image { item.image = finderImage(source) }
+            if let source = item.image {
+                item.image = finderImage(source)
+                // macOS 27 hides action images by default, including non-symbol
+                // bitmaps. Request visibility without overriding the user's
+                // per-category icon settings (nil images stay nil).
+                if #available(macOS 27.0, *) { item.preferredImageVisibility = .visible }
+            }
             if let submenu = item.submenu { prepareForFinder(submenu) }
         }
     }

@@ -103,7 +103,7 @@ struct SettingsView: View {
         .alert("增强右键", isPresented: $model.showsMessage) {
             Button("好", role: .cancel) {}
         } message: {
-            Text(model.message)
+            Text((model.settings.interfaceLanguage ?? .system).usesEnglish ? InterfaceText.english(model.message) : model.message)
         }
     }
 
@@ -154,7 +154,7 @@ struct SettingsView: View {
             }
             Spacer(minLength: 12)
             Divider()
-            Text(version.isEmpty ? "增强右键" : "版本 \(version)")
+            Text(version.isEmpty ? localized("增强右键") : ((model.settings.interfaceLanguage ?? .system).usesEnglish ? "Version \(version)" : "版本 \(version)"))
                 .font(.system(size: 11)).foregroundStyle(Color.settingsMuted).padding(.leading, 8)
         }
         .padding(.horizontal, 13).padding(.vertical, 21)
@@ -380,7 +380,7 @@ struct SettingsView: View {
         } label: {
             Image(systemName: symbol).frame(width: 14)
         }
-        .disabled(action == nil).help(label).accessibilityLabel(label)
+        .disabled(action == nil).help(LocalizedStringKey(label)).accessibilityLabel(Text(LocalizedStringKey(label)))
     }
 
     private var favoritesPage: some View {
@@ -492,7 +492,7 @@ struct SettingsView: View {
     }
 
     private func mergeToggle(_ group: MenuGroup, title: String) -> some View {
-        Toggle(title, isOn: Binding(get: { model.settings.mergedMenuGroups?.contains(group) ?? false }, set: { enabled in
+        Toggle(LocalizedStringKey(title), isOn: Binding(get: { model.settings.mergedMenuGroups?.contains(group) ?? false }, set: { enabled in
             model.setSystemPreference {
                 var groups = $0.mergedMenuGroups ?? []
                 if enabled { groups.insert(group) } else { groups.remove(group) }
@@ -505,7 +505,7 @@ struct SettingsView: View {
         switch item {
         case .action(let action):
             row {
-                Toggle(action.title, isOn: Binding(get: { model.settings.isEnabled(action) }, set: { model.setEnabled(action, $0) }))
+                Toggle(LocalizedStringKey(action.title), isOn: Binding(get: { model.settings.isEnabled(action) }, set: { model.setEnabled(action, $0) }))
                     .labelsHidden().frame(width: 40, alignment: .leading)
                 toolboxIcon(MenuIcons.action(action, size: 20), fallback: action.symbol)
                 EditableMenuName(name: model.settings.menuName(action)) { value in model.updateMenuRule(action) { $0.name = value } }
@@ -525,7 +525,7 @@ struct SettingsView: View {
             }
         case .image(let format):
             row {
-                Toggle(format.title, isOn: Binding(get: { model.settings.enabledImageFormats?.contains(format) ?? true }, set: { model.setImageFormat(format, enabled: $0) }))
+                Toggle(LocalizedStringKey(format.title), isOn: Binding(get: { model.settings.enabledImageFormats?.contains(format) ?? true }, set: { model.setImageFormat(format, enabled: $0) }))
                     .labelsHidden().frame(width: 40, alignment: .leading)
                 toolboxIcon(MenuIcons.action(.convertImage, size: 20), fallback: "photo")
                 EditableMenuName(name: model.settings.imageMenuName(format)) { value in
@@ -554,7 +554,7 @@ struct SettingsView: View {
                                     $0.terminalModes = modes
                                 }
                             })) {
-                                ForEach(TerminalOpenMode.allCases) { Text($0.title).tag($0) }
+                                ForEach(TerminalOpenMode.allCases) { Text(LocalizedStringKey($0.title)).tag($0) }
                             }.labelsHidden()
                         } else { Color.clear.frame(height: 1) }
                     }.frame(width: 190)
@@ -562,7 +562,7 @@ struct SettingsView: View {
             }
         case .text(let service):
             row {
-                Toggle(service.title, isOn: Binding(get: { model.settings.textServiceEnabled(service) }, set: { enabled in
+                Toggle(LocalizedStringKey(service.title), isOn: Binding(get: { model.settings.textServiceEnabled(service) }, set: { enabled in
                     model.setSystemPreference {
                         var services = $0.enabledTextServices ?? Set(TextServiceKind.allCases.map(\.rawValue))
                         if enabled { services.insert(service.rawValue) } else { services.remove(service.rawValue) }
@@ -570,7 +570,7 @@ struct SettingsView: View {
                     }
                 })).labelsHidden().frame(width: 40, alignment: .leading)
                 toolboxIcon(MenuIcons.referenceImage(named: "text-" + service.rawValue, size: 20), fallback: service == .qrCode ? "qrcode" : "character.bubble")
-                Text(service.title).frame(maxWidth: .infinity, alignment: .leading)
+            Text(LocalizedStringKey(service.title)).frame(maxWidth: .infinity, alignment: .leading)
                 Color.clear.frame(width: 190, height: 1)
             }
         }
@@ -589,12 +589,12 @@ struct SettingsView: View {
             HStack(spacing: 10) {
                 ForEach(Array(columns.enumerated()), id: \.offset) { index, title in
                     if index == 0, let selectAll {
-                        Toggle(title, isOn: selectAll).toggleStyle(.checkbox)
+                        Toggle(LocalizedStringKey(title), isOn: selectAll).toggleStyle(.checkbox)
                             .frame(width: widths[index], alignment: .leading)
                     } else if let width = widths[index] {
-                        Text(title).frame(width: width, alignment: .leading)
+                        Text(LocalizedStringKey(title)).frame(width: width, alignment: .leading)
                     } else {
-                        Text(title).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(LocalizedStringKey(title)).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }
@@ -621,7 +621,7 @@ struct SettingsView: View {
 
     private func footer<Controls: View>(_ text: String, @ViewBuilder controls: () -> Controls) -> some View {
         HStack(spacing: 9) {
-            Text(text).font(.system(size: 11)).foregroundStyle(Color.settingsMuted)
+            Text(LocalizedStringKey(text)).font(.system(size: 11)).foregroundStyle(Color.settingsMuted)
             Spacer(minLength: 8)
             controls()
         }

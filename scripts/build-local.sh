@@ -28,6 +28,7 @@ sdk="$(xcrun --sdk macosx --show-sdk-path)"
 ./scripts/prepare-webp.sh
 webp="$root/.build/dependencies/libwebp-1.6.0"
 flags=(-sdk "$sdk" -target "$architecture-apple-macosx$deployment" -module-cache-path "$cache" -parse-as-library -D SUPER_MENU_LOCAL_BUILD)
+if [ "${SUPERMENU_CLOUD_DIAGNOSTICS:-0}" = 1 ]; then flags+=(-D SUPERMENU_CLOUD_DIAGNOSTICS); fi
 
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -38,11 +39,11 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenu</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>0.4.1</string>
-<key>CFBundleVersion</key><string>43</string>
+<key>CFBundleShortVersionString</key><string>0.5.0</string>
+<key>CFBundleVersion</key><string>44</string>
 <key>CFBundleDevelopmentRegion</key><string>zh-Hans</string>
 <key>CFBundleLocalizations</key><array><string>zh-Hans</string><string>en</string></array>
-<key>NSAppleEventsUsageDescription</key><string>在所选目录中打开终端窗口或 iTerm2 标签页。</string>
+<key>NSAppleEventsUsageDescription</key><string>在所选目录中打开终端，以及读取访达云盘窗口目录和选中文件以显示右键菜单。</string>
 <key>NSServices</key><array>
 <dict><key>NSMenuItem</key><dict><key>default</key><string>增强右键 / 百度翻译</string></dict>
 <key>NSMessage</key><string>translateWithBaidu</string><key>NSPortName</key><string>SuperMenu</string>
@@ -82,8 +83,8 @@ cat > "$extension/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>增强右键</string>
 <key>CFBundleExecutable</key><string>SuperMenuFinder</string>
 <key>CFBundlePackageType</key><string>XPC!</string>
-<key>CFBundleShortVersionString</key><string>0.4.1</string>
-<key>CFBundleVersion</key><string>43</string>
+<key>CFBundleShortVersionString</key><string>0.5.0</string>
+<key>CFBundleVersion</key><string>44</string>
 <key>LSMinimumSystemVersion</key><string>$deployment</string>
 <key>NSExtension</key><dict>
 <key>NSExtensionAttributes</key><dict/>
@@ -146,8 +147,16 @@ cp NOTICE "$app/Contents/Resources/Licenses/NOTICE.txt"
 cp "$webp/COPYING" "$app/Contents/Resources/Licenses/libwebp-COPYING"
 cp "$webp/PATENTS" "$app/Contents/Resources/Licenses/libwebp-PATENTS"
 
-codesign --force --sign - --entitlements "$stage/finder.entitlements" "$extension"
-codesign --force --sign - --entitlements "$stage/app.entitlements" "$app"
+signing_identity="${SUPERMENU_SIGNING_IDENTITY:--}"
+if [ "${SUPERMENU_REQUIRE_STABLE_SIGNING:-0}" = 1 ] && [ "$signing_identity" = '-' ]; then
+    echo 'Stable signing required: configure SUPERMENU_SIGNING_IDENTITY with a code-signing certificate.' >&2
+    exit 1
+fi
+if [ "$signing_identity" = '-' ]; then
+    echo 'Warning: ad hoc signing binds privacy grants to this build; rebuilding may require authorization again.' >&2
+fi
+codesign --force --sign "$signing_identity" --entitlements "$stage/finder.entitlements" "$extension"
+codesign --force --sign "$signing_identity" --entitlements "$stage/app.entitlements" "$app"
 codesign --verify --deep --strict "$app"
 
 output="$build/增强右键.app"

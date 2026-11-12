@@ -99,6 +99,7 @@ struct FolderAccess: Codable, Identifiable {
 }
 
 struct Settings: Codable {
+    var cloudMenu: CloudMenuSettings?
     var automaticallyChecksForUpdates: Bool?
     var usageScope: UsageScope?
     var toolboxItemOrder: [String]?
