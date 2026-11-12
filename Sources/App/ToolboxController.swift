@@ -33,9 +33,7 @@ final class ToolboxController: NSObject, NSWindowDelegate, NSSharingServiceDeleg
                 }
             }
             if settings.confirmsPermanentDelete != false {
-                guard confirm("彻底删除 \(urls.count) 个项目？",
-                              detail: "这些项目将永久删除，无法从废纸篓恢复。\n\n" + urls.map(\.path).joined(separator: "\n"),
-                              button: "彻底删除", destructive: true) else { return }
+                guard DeleteConfirmation.confirm(urls: urls) else { return }
             }
             let latest = try SharedStore.load()
             guard latest.isEnabled(.deletePermanently) else { throw SuperMenuError.invalidTarget }

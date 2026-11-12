@@ -44,6 +44,8 @@ def checked_report(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--notes-file', type=Path)
+    parser.add_argument('--title', help='Release title, including app name, version and update theme')
+    parser.add_argument('--replace-assets', action='store_true', help='Replace existing release assets after a fresh gate; preserve the existing tag')
     parser.add_argument('--check-only', action='store_true', help='run the full gate without publishing')
     args = parser.parse_args()
     if not args.check_only:
@@ -66,10 +68,14 @@ def main():
         return 0
     tag = 'v' + report['version']
     tagged = subprocess.check_output(['git', 'rev-parse', tag + '^{commit}'], cwd=ROOT, text=True).strip()
-    if tagged != report['commit']:
+    if not args.replace_assets and tagged != report['commit']:
         raise RuntimeError('Release tag must point to the tested commit')
+    if args.replace_assets:
+        subprocess.run(['gh', 'release', 'upload', tag, '--clobber', *map(str, artifacts)], cwd=ROOT, check=True)
+        subprocess.run(['gh', 'release', 'edit', tag, '--notes-file', str(args.notes_file.resolve())], cwd=ROOT, check=True)
+        return 0
     # gh verifies the tag exists remotely; all asset paths are taken from this run.
-    subprocess.run(['gh', 'release', 'create', tag, '--verify-tag', '--title', tag,
+    subprocess.run(['gh', 'release', 'create', tag, '--verify-tag', '--title', args.title or ('增强右键 ' + tag + ' · 正式版'),
                     '--notes-file', str(args.notes_file.resolve()), *map(str, artifacts)], cwd=ROOT, check=True)
     return 0
 

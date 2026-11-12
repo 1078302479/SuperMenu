@@ -354,3 +354,6 @@
 "上次检查" = "Last checked";
 
 "授权遇到问题？" = "Permission help";
+
+"所选项目将永久删除，此操作无法撤销。" = "The selected items will be permanently deleted. This cannot be undone.";
+"文件不会移入废纸篓。" = "Files will not be moved to the Trash.";
