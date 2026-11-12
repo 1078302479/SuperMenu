@@ -1184,7 +1184,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             created.styleMask = [.titled, .closable, .miniaturizable, .resizable]
             created.title = "增强右键"
             created.minSize = NSSize(width: 800, height: 490)
-            created.setContentSize(NSSize(width: 980, height: 640))
+            created.setContentSize(NSSize(width: 1060, height: 760))
             created.center()
             window = created
         }

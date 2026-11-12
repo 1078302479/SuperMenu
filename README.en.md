@@ -9,6 +9,8 @@
 
 **Latest stable release: [v0.5.0](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.0)**, with cloud-folder menu triggers, in-app update downloads, and redesigned General settings. See the [changelog (Chinese)](CHANGELOG.md).
 
+**Upcoming: v0.5.1 (release candidate)** — fixes Finder action dispatch and image conversion targets, refreshes General settings, and adds a mandatory release preflight. Not published yet; download links below still point to v0.5.0.
+
 ## About
 
 SuperMenu (增强右键) adds file creation, file transfers, image conversion, favorite folders, and other actions to Finder's context menu. It is built with Swift, AppKit, and SwiftUI. Menu names and order can be customized in the settings app.
@@ -29,6 +31,18 @@ Open the DMG, drag 增强右键 into Applications, and launch it from there. Ena
 The app is ad-hoc signed and has not been notarized by Apple. If macOS blocks the first launch, consult [Apple's instructions for opening apps](https://support.apple.com/en-us/102445).
 
 ## Screenshots
+
+### General settings · v0.5.1 candidate
+
+Actual installed-app screenshots, not design mockups. General fits the default window with a fixed bottom check bar. Permission colors reflect the captured machine: green means ready, orange needs attention, gray is unknown. Ad hoc updates may require reauthorization.
+
+<img src="docs/images/general-v051.png" width="1000" alt="v0.5.1 General settings with preferences, updates, cloud triggers and permissions">
+
+### Templates and toolbox · v0.5.1 candidate
+
+<img src="docs/images/templates-v051.png" width="1000" alt="Built-in file templates and custom template controls">
+
+<img src="docs/images/toolbox-v051.png" width="1000" alt="Configurable Finder file actions and image conversion tools">
 
 ### Finder context menu
 
@@ -56,9 +70,9 @@ All 15 built-in document formats are bundled. An appropriate editor is needed to
 
 **1. Open the extension settings from the app**
 
-Launch 增强右键, select General Settings (通用设置), and click Open Finder Extension Settings (打开访达扩展设置) in the Permissions section. A startup prompt may also offer a shortcut to System Settings.
+Launch 增强右键, select General Settings (通用设置), and click the Finder extension status button (访达扩展) under Permissions and access. A startup prompt may also offer a shortcut to System Settings.
 
-<img src="docs/images/general-permissions.png" width="900" alt="Step 1: Open Finder extension settings from the app">
+<img src="docs/images/general-v051.png" width="900" alt="Step 1: Open Finder extension settings from the app">
 
 **2. Enable the extension in System Settings**
 
@@ -68,7 +82,7 @@ Find 增强右键, turn on its switch, and click Done. The supplied screenshot l
 
 **3. Confirm the status**
 
-Return to the app and click Check Now (立即检查). The Finder extension should show Enabled (已启用) in green, as in the first screenshot. Status refreshes every 30 seconds while the app runs and when you return to the app.
+Return to the app and click Check again (重新检查). The Finder extension should show Enabled (已启用) in green, as shown in the General screenshot. Status refreshes every 30 seconds while the app runs and when you return to the app.
 
 Protected Directory Access is a separate check. Restricted access does not mean the Finder extension is disabled or that all ordinary folders are unavailable. If an operation fails in a protected location, use Open Full Disk Access Settings and enable the installed app, then follow macOS restart instructions. This status is an access probe, not an exact reading of the Full Disk Access toggle. An unknown result does not mean permission has been granted.
 

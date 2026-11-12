@@ -208,42 +208,72 @@ struct UpdatePreferencesView: View {
     @ObservedObject var model: SettingsModel
     @ObservedObject var checker: UpdateChecker
 
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+    }
+    private var busy: Bool { checker.checking || checker.downloading }
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 0) {
             Label("软件更新", systemImage: "arrow.triangle.2.circlepath")
-                .font(.system(size: 14, weight: .semibold))
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Toggle("自动检查更新", isOn: Binding(
-                        get: { model.settings.automaticallyChecksForUpdates ?? true },
-                        set: { enabled in
-                            model.setSystemPreference { $0.automaticallyChecksForUpdates = enabled }
-                            checker.check(automatically: true, enabled: enabled)
-                        }))
-                    Spacer()
-                    Button(checker.checking ? "正在检查…" : "检查更新") { checker.check() }
-                        .disabled(checker.checking || checker.downloading || checker.preparedUpdate != nil)
+                .font(.system(size: 13, weight: .semibold)).padding(.bottom, 8)
+            HStack {
+                Text("当前安装版本").font(.system(size: 12))
+                Spacer(minLength: 8)
+                Text("v" + version).font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary).padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
+            }.frame(minHeight: 43, maxHeight: .infinity)
+            Divider()
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("自动检查更新").font(.system(size: 12))
+                    Text("有新版本时提醒你。").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
-                if checker.downloading {
+                Spacer(minLength: 8)
+                Toggle("自动检查更新", isOn: Binding(
+                    get: { model.settings.automaticallyChecksForUpdates ?? true },
+                    set: { enabled in
+                        model.setSystemPreference { $0.automaticallyChecksForUpdates = enabled }
+                        checker.check(automatically: true, enabled: enabled)
+                    })).labelsHidden().toggleStyle(.switch)
+            }.frame(minHeight: 48, maxHeight: .infinity)
+            Divider()
+            HStack(spacing: 8) {
+                Label("安装前会请你确认", systemImage: "checkmark.shield")
+                    .font(.system(size: 10)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                if checker.preparedUpdate != nil {
+                    Button("安装并重启") { checker.installAndRelaunch() }.buttonStyle(.borderedProminent)
+                } else if checker.availableRelease != nil && !busy {
+                    Button("下载更新") { checker.downloadAvailableUpdate() }.buttonStyle(.borderedProminent)
+                } else {
+                    Button { checker.check() } label: {
+                        Label {
+                            Text(LocalizedStringKey(checker.checking ? "正在检查…" : "检查更新"))
+                        } icon: { Image(systemName: "arrow.clockwise") }
+                    }.buttonStyle(.borderedProminent).disabled(busy)
+                }
+            }.frame(minHeight: 47, maxHeight: .infinity).controlSize(.small)
+            if checker.downloading {
+                VStack(spacing: 5) {
+                    ProgressView(value: checker.downloadProgress)
                     HStack {
-                        ProgressView(value: checker.downloadProgress)
-                        Text("\(Int(checker.downloadProgress * 100))%")
-                        Button("取消") { checker.cancelDownload() }
-                    }
-                } else if checker.preparedUpdate != nil {
-                    HStack {
-                        Button("安装并重启") { checker.installAndRelaunch() }
-                        Button("查看安装文件") { checker.revealUpdate() }
-                    }
-                } else if checker.availableRelease != nil {
-                    Button("下载更新") { checker.downloadAvailableUpdate() }
-                }
-                if !checker.status.isEmpty {
-                    Text(InterfaceText.current(checker.status)).font(.caption).foregroundStyle(.secondary)
-                }
-            }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
-        }
+                        Text("\(Int(checker.downloadProgress * 100))%").monospacedDigit()
+                        Spacer()
+                        Button("取消下载") { checker.cancelDownload() }.buttonStyle(.plain).foregroundStyle(.blue)
+                    }.font(.caption)
+                }.padding(.top, 6)
+            }
+            if !checker.status.isEmpty {
+                Text(InterfaceText.current(checker.status)).font(.caption2).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true).textSelection(.enabled).padding(.top, 5)
+            }
+            if checker.preparedUpdate != nil {
+                Button("查看安装文件") { checker.revealUpdate() }.buttonStyle(.link).font(.caption).padding(.top, 4)
+            }
+        }.padding(16).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.07), lineWidth: 1))
     }
 }

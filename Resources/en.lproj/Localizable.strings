@@ -156,8 +156,8 @@
 "请移除旧授权记录，重新添加当前应用。" = "Remove the old permission entry, then add the current app again.";
 "更新后菜单不出现？" = "Menu missing after an update?";
 "目录访问检测不代表完全磁盘访问开关状态。" = "Folder checks do not indicate the Full Disk Access switch state.";
-"按住修饰键时调出增强菜单。" = "Hold a modifier key to open the enhanced menu.";
-"按下鼠标滚轮，直接打开增强菜单。" = "Press the scroll wheel to open the enhanced menu.";
+"按住修饰键时调出增强菜单。" = "Hold a modifier to open the menu.";
+"按下鼠标滚轮，直接打开增强菜单。" = "Press the wheel to open the menu.";
 "触控板手势入口暂不开放。" = "Trackpad gestures are not available yet.";
 "无需组合按键" = "No modifier key needed";
 "修饰键 + 右键" = "Modifier + right-click";
@@ -320,3 +320,37 @@
 "检查完成" = "Checked";
 
 "无法确认权限状态，请点击立即检查" = "Unable to determine permission status. Click Check now.";
+
+"正在下载更新" = "Downloading update";
+
+"更新已准备就绪" = "Ready to install";
+
+"当前安装版本" = "Installed version";
+
+"发现可用更新" = "Update available";
+
+"有新版本时提醒你。" = "Notify me when a new version is available.";
+
+"安装前会请你确认" = "You confirm before installation";
+
+"取消下载" = "Cancel download";
+
+"基础偏好" = "Basic preferences";
+
+"云盘右键菜单" = "Cloud context menu";
+
+"三指触发暂不开放。" = "Three-finger gestures are not available yet.";
+
+"提供访达右键菜单。" = "Adds commands to Finder menus.";
+
+"用于云盘菜单的鼠标触发。" = "Enables cloud menu mouse triggers.";
+
+"读取当前目录与所选文件。" = "Reads the current folder and selection.";
+
+"可选，部分文件操作需要。" = "Optional for protected file operations.";
+
+"重新检查" = "Check again";
+
+"上次检查" = "Last checked";
+
+"授权遇到问题？" = "Permission help";

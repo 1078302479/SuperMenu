@@ -1106,6 +1106,14 @@ struct BackgroundHandoffSmoke {
         let saved = model.settings
         defer { try? SharedStore.save(saved) }
         model.setSystemPreference { $0.interfaceLanguage = .chinese }
+        let updateCard = NSHostingView(rootView: UpdatePreferencesView(model: model, checker: model.updates)
+            .padding(20).frame(width: 360, height: 380).environment(\.locale, Locale(identifier: "zh-Hans")))
+        updateCard.frame = NSRect(x: 0, y: 0, width: 360, height: 380)
+        updateCard.layoutSubtreeIfNeeded()
+        guard let updateBitmap = updateCard.bitmapImageRepForCachingDisplay(in: updateCard.bounds) else { throw SmokeError.unexpectedResult }
+        updateCard.cacheDisplay(in: updateCard.bounds, to: updateBitmap)
+        guard let updatePNG = updateBitmap.representation(using: .png, properties: [:]) else { throw SmokeError.unexpectedResult }
+        try updatePNG.write(to: output.appendingPathComponent("update-card.png"))
         let pages = SettingsPage.allCases
         guard pages.map(\.rawValue) == ["通用设置", "新建文件", "发送文件到…", "常用目录", "文件（夹）图标", "工具箱"] else { throw SmokeError.unexpectedResult }
         for merged in [false, true] {
@@ -1150,7 +1158,7 @@ struct BackgroundHandoffSmoke {
             model.page = page
             if page == .send { model.setSystemPreference { $0.copyDestinations = .standardTransferDestinations() } }
             let host = NSHostingView(rootView: SettingsView(model: model))
-            let size = NSSize(width: 980, height: 640)
+            let size = page == .overview ? NSSize(width: 1060, height: 760) : NSSize(width: 980, height: 640)
             host.frame = NSRect(origin: .zero, size: size)
             let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
             window.contentView = host
@@ -1167,7 +1175,7 @@ struct BackgroundHandoffSmoke {
         model.page = .overview
         guard model.settings.menuName(.copyPath) == "Copy Path" else { throw SmokeError.unexpectedResult }
         let host = NSHostingView(rootView: SettingsView(model: model))
-        host.frame = NSRect(x: 0, y: 0, width: 980, height: 640)
+        host.frame = NSRect(x: 0, y: 0, width: 1060, height: 760)
         let window = NSWindow(contentRect: host.frame, styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = host
         host.layoutSubtreeIfNeeded()
