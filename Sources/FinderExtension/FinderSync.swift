@@ -98,10 +98,17 @@ final class FinderSync: FIFinderSync {
     }
 
     override func menu(for menuKind: FIMenuKind) -> NSMenu? {
-        menuController.menu(for: menuKind, settings: settings)
+        menuController.finderMenu(for: menuKind, settings: settings, target: self,
+                                  action: #selector(dispatchMenuAction(_:)))
+    }
+
+    @objc private func dispatchMenuAction(_ sender: NSMenuItem) {
+        log.notice("收到访达菜单动作：\(sender.tag)")
+        menuController.dispatchFinderAction(sender)
     }
 
     private func send(_ request: FinderRequest) {
+        log.notice("发送访达请求：\(request.action.rawValue, privacy: .public)，目标数：\(request.paths.count)")
         do {
             let app = Bundle.main.bundleURL.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             try FinderHandoff.send(request, to: app) { [log] error in

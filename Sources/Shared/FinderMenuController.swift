@@ -15,6 +15,52 @@ final class FinderMenuController: NSObject {
     private let contextProvider: () -> FinderMenuContext
     private let requestHandler: (FinderRequest) -> Void
     private var menuSelection: [URL]?
+    private var actionContext: FinderMenuContext?
+    private var finderRoutes: [Int: (NSMenuItem, FinderMenuContext)] = [:]
+    private var finderRouteBatches: [[Int]] = []
+    private var nextFinderRoute = 1
+
+    // Finder dispatches to the extension principal object, ignoring custom targets.
+    // Keep payloads locally; only a unique integer tag crosses the Finder boundary.
+    func finderMenu(for kind: FIMenuKind, settings: Settings, target: AnyObject, action: Selector) -> NSMenu? {
+        let context = contextProvider()
+        guard let menu = menu(for: kind, settings: settings) else { return nil }
+        var batch: [Int] = []
+        func bind(_ menu: NSMenu) {
+            for item in menu.items {
+                if let submenu = item.submenu { bind(submenu) }
+                guard item.action != nil else { continue }
+                let original = item.copy() as! NSMenuItem
+                let token = nextFinderRoute
+                nextFinderRoute += 1
+                finderRoutes[token] = (original, context)
+                batch.append(token)
+                item.tag = token
+                item.action = action
+                item.target = target
+                item.representedObject = nil
+            }
+        }
+        bind(menu)
+        finderRouteBatches.append(batch)
+        // Retain recent menus without allowing an unbounded action registry.
+        while finderRouteBatches.count > 4 {
+            for token in finderRouteBatches.removeFirst() { finderRoutes.removeValue(forKey: token) }
+        }
+        return menu
+    }
+
+    func dispatchFinderAction(_ sender: NSMenuItem) {
+        guard let (item, context) = finderRoutes[sender.tag],
+              let action = item.action, let target = item.target as? NSObject else {
+            log.error("访达动作编号已失效：\(sender.tag)")
+            return
+        }
+        let previous = actionContext
+        actionContext = context
+        defer { actionContext = previous }
+        _ = target.perform(action, with: item)
+    }
 
     init(context: @escaping () -> FinderMenuContext, onRequest: @escaping (FinderRequest) -> Void) {
         contextProvider = context
@@ -236,6 +282,9 @@ final class FinderMenuController: NSObject {
             let item = NSMenuItem(title: settings.imageMenuName(format), action: #selector(convertSelectedImages(_:)), keyEquivalent: "")
             item.target = self
             item.tag = ImageFormat.allCases.firstIndex(of: format) ?? 0
+            // Finder may clear its selection once the contextual menu closes.
+            // Bind each command to this menu's files, including overlapping menus.
+            item.representedObject = selection
             item.image = MenuIcons.action(.convertImage, size: 16)
             submenu.addItem(item)
         }
@@ -441,8 +490,12 @@ final class FinderMenuController: NSObject {
     }
 
     @objc private func convertSelectedImages(_ sender: NSMenuItem) {
-        guard ImageFormat.allCases.indices.contains(sender.tag), !selection.isEmpty else { return }
-        send(FinderRequest(action: .convertImage, paths: selection.map(\.path), created: Date(),
+        guard ImageFormat.allCases.indices.contains(sender.tag),
+              let files = sender.representedObject as? [URL], !files.isEmpty else {
+            log.error("图片转换菜单缺少绑定目标")
+            return
+        }
+        send(FinderRequest(action: .convertImage, paths: files.map(\.path), created: Date(),
                            imageFormat: ImageFormat.allCases[sender.tag]))
     }
 
@@ -494,11 +547,11 @@ final class FinderMenuController: NSObject {
     }
 
     private var targetedFolder: [URL] {
-        contextProvider().folder.map { [$0] } ?? []
+        (actionContext ?? contextProvider()).folder.map { [$0] } ?? []
     }
 
     private var selection: [URL] {
-        menuSelection ?? contextProvider().selection
+        menuSelection ?? (actionContext ?? contextProvider()).selection
     }
 
     private func perform(_ action: FinderAction, urls: [URL], template: DocumentTemplate? = nil,

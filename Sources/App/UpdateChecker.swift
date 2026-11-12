@@ -126,6 +126,12 @@ final class UpdateChecker: ObservableObject {
         #endif
     }
 
+    #if SUPERMENU_TEST
+    func offerForTesting(_ release: GitHubRelease) {
+        availableRelease = release
+    }
+    #endif
+
     func downloadAvailableUpdate() {
         guard !downloading, preparedUpdate == nil, let release = availableRelease else { return }
         if (try? UpdatePackage(release: release, architecture: Self.architecture)) == nil {

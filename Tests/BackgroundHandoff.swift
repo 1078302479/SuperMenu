@@ -99,6 +99,20 @@ struct BackgroundHandoffSmoke {
                   try UpdatePackage.hash(of: archive) == package.expectedHash(in: checksums) else { throw SmokeError.unexpectedResult }
             let prepared = try UpdateInstaller.prepare(archive: archive, version: String(release.tag_name.dropFirst()), directory: fixture)
             guard fm.fileExists(atPath: prepared.app.path) else { throw SmokeError.unexpectedResult }
+            let checker = UpdateChecker()
+            checker.offerForTesting(release)
+            checker.downloadAvailableUpdate()
+            let deadline = Date().addingTimeInterval(180)
+            while checker.downloading && Date() < deadline {
+                try await Task.sleep(nanoseconds: 100_000_000)
+            }
+            guard !checker.downloading, let offered = checker.preparedUpdate,
+                  offered.version == String(release.tag_name.dropFirst()),
+                  checker.downloadProgress > 0 else {
+                throw ToolboxError.message("Update controller did not prepare the live release: \(checker.status)")
+            }
+            try fm.removeItem(at: offered.directory)
+            print("PASS: production update controller progresses from offered release through live download and validation to ready-to-install")
             print("PASS: live GitHub release download, cancellation, SHA256 manifest and signed package extraction")
         }
         var settings = Settings()
@@ -382,6 +396,63 @@ struct BackgroundHandoffSmoke {
         guard received?.paths == files.map(\.path) else { throw SmokeError.unexpectedResult }
         _ = target.perform(action, with: copy)
         guard received?.paths == [fixture.path] else { throw SmokeError.unexpectedResult }
+        // Finder's live selection can disappear or change before the action fires.
+        var live = FinderMenuContext(folder: fixture, selection: [fixture.appendingPathComponent("original.png")])
+        let imageBuilder = FinderMenuController(context: { live }, onRequest: { received = $0 })
+        func imageCommands(_ menu: NSMenu) -> [NSMenuItem] {
+            menu.items.flatMap { item -> [NSMenuItem] in
+                if let sub = item.submenu { return imageCommands(sub) }
+                return item.action == NSSelectorFromString("convertSelectedImages:") ? [item] : []
+            }
+        }
+        var imageSettings = customSettings
+        imageSettings.enabledImageFormats = Set(ImageFormat.allCases)
+        let originalPaths = live.selection.map(\.path)
+        guard let originalMenu = imageBuilder.menu(for: .contextualMenuForItems, settings: imageSettings) else { throw SmokeError.unexpectedResult }
+        let commands = imageCommands(originalMenu)
+        guard commands.count == ImageFormat.allCases.count else { throw SmokeError.unexpectedResult }
+        live = FinderMenuContext(folder: secondFolder, selection: [secondFolder.appendingPathComponent("other.png")])
+        guard let otherMenu = imageBuilder.menu(for: .contextualMenuForItems, settings: imageSettings) else { throw SmokeError.unexpectedResult }
+        let otherCommands = imageCommands(otherMenu)
+        let otherPaths = live.selection.map(\.path)
+        live = FinderMenuContext(folder: nil, selection: [])
+        for command in commands + otherCommands {
+            received = nil
+            guard let selector = command.action, let receiver = command.target as? NSObject else { throw SmokeError.unexpectedResult }
+            _ = receiver.perform(selector, with: command)
+            let expected = commands.contains(where: { $0 === command }) ? originalPaths : otherPaths
+            guard received?.paths == expected, received?.imageFormat == ImageFormat.allCases[command.tag] else { throw SmokeError.unexpectedResult }
+        }
+        live = FinderMenuContext(folder: fixture, selection: [fixture.appendingPathComponent("original.png")])
+        let bridgeSelector = NSSelectorFromString("dispatchMenuAction:")
+        guard let routedMenu = imageBuilder.finderMenu(for: .contextualMenuForItems, settings: imageSettings, target: NSObject(), action: bridgeSelector) else { throw SmokeError.unexpectedResult }
+        func routedItems(_ menu: NSMenu) -> [NSMenuItem] {
+            menu.items.flatMap { item -> [NSMenuItem] in
+                if let sub = item.submenu { return routedItems(sub) }
+                return item.action == bridgeSelector ? [item] : []
+            }
+        }
+        let routed = routedItems(routedMenu)
+        let conversions = routed.filter { $0.title.contains("转为") }
+        guard conversions.count == 7,
+              let pathItem = routed.first(where: { $0.identifier?.rawValue == FinderAction.copyPath.rawValue }) else { throw SmokeError.unexpectedResult }
+        live = FinderMenuContext(folder: secondFolder, selection: [secondFolder.appendingPathComponent("other.png")])
+        _ = imageBuilder.finderMenu(for: .contextualMenuForItems, settings: imageSettings, target: NSObject(), action: bridgeSelector)
+        live = FinderMenuContext(folder: nil, selection: [])
+        var converted = Set<ImageFormat>()
+        for item in conversions + [pathItem] {
+            // Simulate the remote sender: only its tag survives, no target or payload.
+            let remote = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+            remote.tag = item.tag
+            received = nil
+            imageBuilder.dispatchFinderAction(remote)
+            guard received?.paths == originalPaths else { throw SmokeError.unexpectedResult }
+            if let format = received?.imageFormat { converted.insert(format) }
+            else { guard received?.action == .copyPath else { throw SmokeError.unexpectedResult } }
+        }
+        guard converted == Set(ImageFormat.allCases) else { throw SmokeError.unexpectedResult }
+        print("PASS: Finder principal routing restores seven conversions and copy-path from tag-only remote senders, retaining original-window targets")
+        print("PASS: all seven conversion commands retain their own targets after Finder selection clears and another menu opens")
         print("PASS: cloud path boundaries, trigger settings roundtrip, shared background menu and action context")
         print("PASS: update architecture selection, official URLs, known SHA256 vector, missing/duplicate hashes and invalid archive rejection")
     }
