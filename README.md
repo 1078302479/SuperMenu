@@ -8,7 +8,7 @@
   <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">macOS 下载页</a> · <a href="#界面预览">界面截图</a> · <a href="#首次使用">使用说明</a> · <a href="#从源码构建">从源码构建</a></p>
 </div>
 
-**最新正式版：[v0.5.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.1)**，新增云盘菜单触发、应用内下载升级与通用设置重设计。修复内容见 [更新记录](CHANGELOG.md)。
+**最新正式版：[v0.5.2](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.2)**，修复后台右键操作意外显示 Dock 图标的问题。修复内容见 [更新记录](CHANGELOG.md)。
 
 
 ## 简介
@@ -23,8 +23,8 @@
 | --- | --- |
 | 系统要求 | macOS 13 或更高版本 |
 | 安装包架构 | Apple 芯片（arm64） |
-| 最新版本 | [v0.5.1 正式版](https://github.com/1078302479/SuperMenu/releases/latest) |
-| 下载格式 | [DMG 安装包](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.dmg)、[应用 ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.zip)、源码及 SHA256 校验文件 |
+| 最新版本 | [v0.5.2 正式版](https://github.com/1078302479/SuperMenu/releases/latest) |
+| 下载格式 | [DMG 安装包](https://github.com/1078302479/SuperMenu/releases/download/v0.5.2/SuperMenu-v0.5.2-arm64.dmg)、[应用 ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.2/SuperMenu-v0.5.2-arm64.zip)、源码及 SHA256 校验文件 |
 
 打开 DMG，将「增强右键」拖入「应用程序」，再从「应用程序」启动，按下方步骤启用访达扩展。
 

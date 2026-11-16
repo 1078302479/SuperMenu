@@ -7,7 +7,7 @@
   <p><a href="https://github.com/1078302479/SuperMenu/releases/latest">Download for macOS</a> · <a href="#screenshots">Screenshots</a> · <a href="#first-time-setup">Setup guide</a> · <a href="#build-from-source">Build from source</a></p>
 </div>
 
-**Latest stable release: [v0.5.1](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.1)**, with cloud-folder menu triggers, in-app update downloads, and redesigned General settings. See the [changelog (Chinese)](CHANGELOG.md).
+**Latest stable release: [v0.5.2](https://github.com/1078302479/SuperMenu/releases/tag/v0.5.2)**, fixing unexpected Dock icons when Finder actions launch the app in the background. See the [changelog (Chinese)](CHANGELOG.md).
 
 
 ## About
@@ -22,8 +22,8 @@ This free, independent open-source project aims to cover the features of iRightM
 | --- | --- |
 | macOS | 13 or later |
 | Download architecture | Apple silicon (arm64) |
-| Latest release | [v0.5.1](https://github.com/1078302479/SuperMenu/releases/latest) |
-| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.1/SuperMenu-v0.5.1-arm64.zip), source ZIP, and SHA256 checksums |
+| Latest release | [v0.5.2](https://github.com/1078302479/SuperMenu/releases/latest) |
+| Downloads | [DMG installer](https://github.com/1078302479/SuperMenu/releases/download/v0.5.2/SuperMenu-v0.5.2-arm64.dmg), [app ZIP](https://github.com/1078302479/SuperMenu/releases/download/v0.5.2/SuperMenu-v0.5.2-arm64.zip), source ZIP, and SHA256 checksums |
 
 Open the DMG, drag 增强右键 into Applications, and launch it from there. Enable its Finder extension as described below.
 
