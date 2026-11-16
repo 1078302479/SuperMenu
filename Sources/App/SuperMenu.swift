@@ -1083,7 +1083,7 @@ final class SettingsModel: ObservableObject {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private let model = SettingsModel()
     private var window: NSWindow?
     private var receivedRequest = false
@@ -1178,6 +1178,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func showSettings() {
+        NSApp.setActivationPolicy(.regular)
         if window == nil {
             let controller = NSHostingController(rootView: SettingsView(model: model))
             let created = NSWindow(contentViewController: controller)
@@ -1186,11 +1187,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             created.minSize = NSSize(width: 800, height: 490)
             created.setContentSize(NSSize(width: 1060, height: 760))
             created.center()
+            created.delegate = self
             window = created
         }
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         checkFinderExtension()
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard notification.object as? NSWindow === window else { return }
+        NSApp.setActivationPolicy(.accessory)
     }
 
     private func checkFinderExtension() {
@@ -1227,7 +1234,9 @@ struct SuperMenuApp {
         let app = NSApplication.shared
         let delegate = AppDelegate()
         app.delegate = delegate
-        app.setActivationPolicy(.regular)
+        // Finder requests launch this process too. Only the settings window
+        // should promote it to a Dock application.
+        app.setActivationPolicy(.accessory)
         app.appearance = NSAppearance(named: .aqua)
         app.run()
     }
